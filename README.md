@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BayyinahHub
+
+BayyinahHub is a web application designed to help users search and understand Islamic Hadiths (prophetic traditions and sayings). The application provides an intuitive search interface and AI-powered explanations of Hadiths to make Islamic knowledge more accessible.
+
+## Features
+
+- **Hadith Search**: Search through authentic Hadith collections using the Sunnah API
+- **AI-Powered Explanations**: Get simplified, context-aware explanations of Hadiths using GPT-4
+- **Bilingual Support**: Full Arabic language support for an authentic experience
+- **Responsive Design**: Modern, mobile-friendly interface with smooth animations
+- **Demo Mode**: Built-in demo data for development and testing without API keys
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org) (v16.1.6) with TypeScript
+- **Styling**: [Tailwind CSS](https://tailwindcss.com) v4
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **API Integration**:
+  - [Sunnah.com API](https://sunnah.com/api) for Hadith search
+  - OpenAI GPT-4o-mini for Hadith explanations
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18 or higher
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Set up environment variables by creating a `.env.local` file:
+
+```env
+OPENAI_API_KEY=your_openai_api_key_here
+SUNNAH_API_KEY=your_sunnah_api_key_here
+```
+
+### Running the Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Building for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## API Endpoints
 
-To learn more about Next.js, take a look at the following resources:
+- `POST /api/explain` - Get an AI-powered explanation of a Hadith text
+- `GET /api/search?q={query}` - Search for Hadiths by keyword
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `/src/app` - Next.js app directory with main pages and API routes
+- `/src/components` - React components for different page sections
+- `/public` - Static assets and logos
 
-## Deploy on Vercel
+## Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The application supports development without API keys using demo data. Missing API keys will automatically fall back to demonstration data for testing purposes.

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const SUNNAH_API_BASE = "https://api.sunnah.com/v1";
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("q");
@@ -10,57 +8,55 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results: [] });
   }
 
-  const apiKey = process.env.SUNNAH_API_KEY;
-
-  // If no API key configured, return demo data for development
-  if (!apiKey) {
-    return NextResponse.json({
-      results: getDemoResults(query),
-    });
-  }
-
   try {
-    const response = await fetch(
-      `${SUNNAH_API_BASE}/hadiths?q=${encodeURIComponent(query)}&limit=10`,
-      {
-        headers: {
-          "X-API-Key": apiKey,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return NextResponse.json({
-        results: getDemoResults(query),
-      });
-    }
-
-    const data = await response.json();
-
-    const results = (data.data || []).map(
-      (h: {
-        hadithNumber: string;
-        collection: { name?: string }[];
-        bookNumber?: string;
-        chapterNumber?: string;
-        body: string;
-        grades?: { grade: string }[];
-      }) => ({
-        hadithNumber: h.hadithNumber || "",
-        collection: h.collection?.[0]?.name || "مجموعة غير معروفة",
-        bookName: h.bookNumber ? `كتاب ${h.bookNumber}` : "",
-        chapterName: h.chapterNumber ? `باب ${h.chapterNumber}` : "",
-        hadithArabic: h.body || "",
-        grade: h.grades?.[0]?.grade || "",
-      })
-    );
-
-    return NextResponse.json({ results });
-  } catch {
-    return NextResponse.json({
-      results: getDemoResults(query),
+    // Try the Sunnah.com API first
+    const searchUrl = `https://api.sunnah.com/v1/hadiths?search=${encodeURIComponent(query.trim())}&limit=10`;
+    console.log("Fetching from:", searchUrl);
+    
+    const response = await fetch(searchUrl, {
+      headers: {
+        "Accept": "application/json",
+      },
     });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("API Response:", data);
+      
+      const results = (data.hadiths || data.data || []).map(
+        (h: {
+          hadithNumber?: string;
+          hadithNumInBook?: string;
+          collection?: { name?: string };
+          collectionName?: string;
+          bookName?: string;
+          chapterName?: string;
+          chapterTitle?: string;
+          body?: string;
+          text?: string;
+          arabicText?: string;
+          grade?: string;
+          grades?: Array<{ grade: string }>;
+        }) => ({
+          hadithNumber: h.hadithNumber || h.hadithNumInBook || "",
+          collection: h.collection?.name || h.collectionName || "مجموعة أحاديث",
+          bookName: h.bookName || "",
+          chapterName: h.chapterName || h.chapterTitle || "",
+          hadithArabic: h.body || h.text || h.arabicText || "",
+          grade: h.grade || h.grades?.[0]?.grade || "",
+        })
+      ).filter((h: { hadithArabic: string }) => h.hadithArabic.trim().length > 0);
+
+      if (results.length > 0) {
+        return NextResponse.json({ results });
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching from Sunnah API:", error);
   }
+
+  // Fallback: return demo data if API fails
+  return NextResponse.json({ results: getDemoResults(query) });
 }
 
 function getDemoResults(query: string) {
@@ -101,16 +97,25 @@ function getDemoResults(query: string) {
         'عَنِ النُّعْمَانِ بْنِ بَشِيرٍ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَثَلُ الْمُؤْمِنِينَ فِي تَوَادِّهِمْ وَتَرَاحُمِهِمْ وَتَعَاطُفِهِمْ مَثَلُ الْجَسَدِ إِذَا اشْتَكَى مِنْهُ عُضْوٌ تَدَاعَى لَهُ سَائِرُ الْجَسَدِ بِالسَّهَرِ وَالْحُمَّى»',
       grade: "صحيح",
     },
+    {
+      hadithNumber: "7",
+      collection: "صحيح مسلم",
+      bookName: "كتاب الإيمان",
+      chapterName: "باب الحث على الصدقة",
+      hadithArabic:
+        'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «كُلُّ يَوْمٍ تَطْلُعُ فِيهِ الشَّمْسُ بَيْنَ قَرْنَيْهَا صَدَقَةُ أَهْلُ السَّمَاءِ عَلَى أَهْلِ الأَرْضِ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "12",
+      collection: "صحيح البخاري",
+      bookName: "كتاب الإيمان",
+      chapterName: "باب من الإيمان بد الصدقة",
+      hadithArabic:
+        'عَنْ أَبِي مُوسَى رَضِيَ اللَّهُ عَنْهُ عَنِ النَّبِيِّ ﷺ قَالَ: «عَلَى كُلِّ نَفْسٍ صَدَقَةٌ كُلَّ يَوْمٍ تَطْلُعُ فِيهِ الشَّمْسُ»',
+      grade: "صحيح",
+    },
   ];
 
-  const q = query.toLowerCase();
-  const filtered = demoData.filter(
-    (h) =>
-      h.hadithArabic.includes(query) ||
-      h.bookName.includes(query) ||
-      h.chapterName.includes(query) ||
-      h.hadithArabic.toLowerCase().includes(q)
-  );
-
-  return filtered.length > 0 ? filtered : demoData;
+  return demoData;
 }

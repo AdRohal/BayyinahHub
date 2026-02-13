@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface HadithResult {
@@ -22,21 +22,53 @@ interface AIExplanation {
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<HadithResult[]>([]);
+  const [suggestions, setSuggestions] = useState<HadithResult[]>([]);
   const [aiExplanation, setAiExplanation] = useState<AIExplanation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  // Load popular hadith suggestions on mount
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      try {
+        const populartopics = ["الصدقة", "الصبر", "بر الوالدين", "الصلاة", "النية", "الرحمة"];
+        let allSuggestions: HadithResult[] = [];
+        
+        // Fetch from multiple topics to get 6+ suggestions
+        for (const topic of populartopics.slice(0, 3)) {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(topic)}`);
+          const data = await res.json();
+          if (data.results && data.results.length > 0) {
+            allSuggestions.push(...data.results);
+          }
+          if (allSuggestions.length >= 6) break;
+        }
+        
+        setSuggestions(allSuggestions.slice(0, 6));
+      } catch {
+        setSuggestions([]);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    };
+    loadSuggestions();
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent, searchQuery?: string) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    const finalQuery = searchQuery || query;
+    if (!finalQuery.trim()) return;
 
     setLoading(true);
     setSearched(true);
+    setShowSuggestions(false);
     setAiExplanation(null);
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(finalQuery.trim())}`);
       const data = await res.json();
       setResults(data.results || []);
     } catch {
@@ -44,6 +76,14 @@ export default function SearchPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuggestionClick = (hadith: HadithResult) => {
+    setQuery(hadith.hadithArabic.substring(0, 30));
+    setResults([hadith]);
+    setShowSuggestions(false);
+    setSearched(true);
+    setAiExplanation(null);
   };
 
   const handleExplain = async (hadithText: string) => {
@@ -94,6 +134,7 @@ export default function SearchPage() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
                 placeholder="ابحث عن حديث... مثال: الصدقة، الصبر، بر الوالدين"
                 className="w-full px-6 py-4 pr-12 bg-white rounded-2xl border-2 border-gold/20 focus:border-gold focus:outline-none text-text placeholder:text-text/30 text-lg shadow-sm transition-all duration-200"
                 dir="rtl"
@@ -122,6 +163,50 @@ export default function SearchPage() {
               )}
             </button>
           </div>
+
+          {/* Suggestions dropdown */}
+          <AnimatePresence>
+            {showSuggestions && !searched && !query.trim() && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full left-0 right-0 mt-3 bg-white rounded-2xl border border-gold/20 shadow-lg z-10"
+              >
+                {suggestionsLoading ? (
+                  <div className="p-6 text-center">
+                    <div className="w-8 h-8 border-2 border-gold/20 border-t-gold rounded-full animate-spin mx-auto" />
+                    <p className="text-text/50 text-sm mt-2">جاري تحميل المقترحات...</p>
+                  </div>
+                ) : suggestions.length > 0 ? (
+                  <div className="p-4 space-y-2">
+                    <p className="text-text/50 text-xs font-semibold px-2 py-1">أحاديث مقترحة</p>
+                    {suggestions.map((hadith, i) => (
+                      <motion.button
+                        key={i}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        onClick={() => handleSuggestionClick(hadith)}
+                        className="w-full text-right px-4 py-3 rounded-lg hover:bg-gold/5 transition-colors group"
+                      >
+                        <p className="text-text/70 text-sm leading-relaxed group-hover:text-text truncate" dir="rtl">
+                          {hadith.hadithArabic.substring(0, 80)}...
+                        </p>
+                        <p className="text-gold/60 text-xs mt-1 group-hover:text-gold">
+                          📖 {hadith.collection}
+                        </p>
+                      </motion.button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-text/50 text-sm">لم تتم تحميل المقترحات</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.form>
 
         {/* Results */}
@@ -198,7 +283,7 @@ export default function SearchPage() {
                   )}
 
                   {/* Hadith text */}
-                  <div className="hadith-text text-text font-medium leading-loose mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5">
+                  <div className="hadith-text text-text font-medium leading-loose mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5" dir="rtl">
                     {hadith.hadithArabic}
                   </div>
 
@@ -299,21 +384,57 @@ export default function SearchPage() {
           )}
         </AnimatePresence>
 
-        {/* Initial state */}
+        {/* Initial state - show suggestions */}
         {!searched && !loading && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="text-center py-16"
+            className="mt-12"
           >
-            <svg className="w-20 h-20 text-gold/20 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            <p className="text-text/40 text-lg mb-2">ابدأ بالبحث عن أي حديث</p>
-            <p className="text-text/25 text-sm">
-              اكتب كلمة مفتاحية مثل &quot;الصلاة&quot; أو &quot;الصدقة&quot; أو &quot;بر الوالدين&quot;
-            </p>
+            <p className="text-center text-text/50 text-sm font-semibold mb-6">أحاديث شهيرة</p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {suggestionsLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl p-4 animate-pulse">
+                    <div className="h-20 bg-gold/10 rounded mb-3" />
+                    <div className="h-4 bg-gold/10 rounded w-2/3" />
+                  </div>
+                ))
+              ) : suggestions.length > 0 ? (
+                suggestions.map((hadith, i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.08 }}
+                    onClick={() => handleSuggestionClick(hadith)}
+                    className="group relative bg-white rounded-xl p-5 border border-gold/10 hover:border-gold/30 transition-all hover:shadow-md text-right"
+                  >
+                    <div className="absolute top-3 left-3">
+                      <span className="text-2xl">📖</span>
+                    </div>
+                    <p className="text-sm text-text/70 leading-relaxed mb-3 group-hover:text-text line-clamp-3" dir="rtl">
+                      {hadith.hadithArabic}
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs bg-gold/10 text-gold-deep px-2.5 py-1 rounded-full">
+                        {hadith.collection}
+                      </span>
+                      {hadith.grade && (
+                        <span className="text-xs bg-green-50 text-green-700 px-2.5 py-1 rounded-full">
+                          ✓ {hadith.grade}
+                        </span>
+                      )}
+                    </div>
+                  </motion.button>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-text/40 text-sm">لا توجد أحاديث مقترحة حالياً</p>
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </div>
