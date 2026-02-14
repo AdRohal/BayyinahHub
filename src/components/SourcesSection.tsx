@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 
 const sources = [
   {
@@ -82,14 +81,16 @@ export default function SourcesSection() {
                         <path d={source.svgPath} fill="currentColor" className="text-cream-light" />
                       </svg>
                     ) : (
-                      <Image
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
                         src={source.logo}
                         alt={source.name}
                         width={source.width}
                         height={source.height}
                         className={`h-10 w-auto opacity-70 group-hover:opacity-100 transition-opacity ${
-                          source.logo.endsWith(".png") ? "" : "brightness-0 invert"
+                          source.logo!.endsWith(".png") ? "" : "brightness-0 invert"
                         }`}
+                        suppressHydrationWarning
                       />
                     )}
                   </div>

@@ -13,9 +13,11 @@ export async function POST(request: NextRequest) {
 
   const apiKey = process.env.OPENAI_API_KEY;
 
-  // If no API key, return a demo explanation
   if (!apiKey) {
-    return NextResponse.json(getDemoExplanation(text));
+    return NextResponse.json(
+      { error: "مفتاح API OpenAI غير متوفر. يرجى تكوين البيئة بشكل صحيح." },
+      { status: 500 }
+    );
   }
 
   try {
@@ -26,38 +28,50 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "gpt-3.5-turbo",
         messages: [
           {
             role: "system",
-            content: `أنت مساعد متخصص في شرح الأحاديث النبوية الشريفة بأسلوب مبسط وواضح.
-قواعد مهمة:
-- لا تُصدر فتاوى
-- لا تُنشئ أحاديث جديدة
-- اشرح النص كما هو فقط
-- استخدم لغة عربية فصيحة مبسطة
-- قدّم ملخصاً قصيراً ثم شرحاً مفصلاً
-- استخرج الكلمات المفتاحية الرئيسية
+            content: `أنت عالم متخصص في الحديث الشريف والسنة النبوية. دورك هو شرح الأحاديث بطريقة علمية دقيقة وموثوقة.
 
-أجب بصيغة JSON بالشكل التالي:
+قواعد حتمية يجب الالتزام بها:
+- لا تفتري على الدين أو النبي ﷺ بأي أفتراضات
+- لا تضيف معاني ليست من النص الأصلي
+- اشرح فقط ما يتضمنه الحديث بوضوح
+- استند إلى فهم العلماء المعروفين والموثوق
+- إذا كان هناك تفسير متعدد، اذكر الأوجه المختلفة بحذر
+- لا تُصدر فتاوى أو أحكام شرعية
+- استخدم لغة عربية فصحى مبسطة وواضحة
+- ركز على الفهم الصحيح للحديث وليس التأويلات الشخصية
+
+منهج الشرح:
+1. الملخص: اختصر معنى الحديث في سطر أو سطرين
+2. الشرح: اشرح الحديث كلمة تلو الأخرى، وضح المعاني الصعبة، اربط بين أجزاء الحديث
+3. الكلمات المفتاحية: استخرج أهم المواضيع والمفاهيم
+
+أجب بصيغة JSON فقط بهذا الشكل:
 {
-  "summary": "ملخص قصير للحديث",
-  "explanation": "شرح مفصل بأسلوب مبسط",
+  "summary": "ملخص قصير جداً للحديث",
+  "explanation": "شرح تفصيلي ودقيق للحديث بدون افتراءات",
   "keywords": ["كلمة1", "كلمة2", "كلمة3"]
 }`,
           },
           {
             role: "user",
-            content: `اشرح هذا الحديث النبوي بأسلوب مبسط:\n\n${text}`,
+            content: `اشرح هذا الحديث الشريف بدقة وأمانة علمية، بدون افتراءات أو إضافات:\n\n${text}`,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 1000,
+        temperature: 0.2,
+        max_tokens: 1200,
       }),
     });
 
     if (!response.ok) {
-      return NextResponse.json(getDemoExplanation(text));
+      console.error(`OpenAI API error: ${response.status}`);
+      return NextResponse.json(
+        { error: `خطأ من OpenAI API: ${response.status}` },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
@@ -79,16 +93,11 @@ export async function POST(request: NextRequest) {
       explanation: content,
       keywords: [],
     });
-  } catch {
-    return NextResponse.json(getDemoExplanation(text));
+  } catch (error) {
+    console.error("Error calling OpenAI API:", error);
+    return NextResponse.json(
+      { error: "خطأ في جلب الشرح من API" },
+      { status: 500 }
+    );
   }
-}
-
-function getDemoExplanation(text: string) {
-  const truncated = text.slice(0, 50);
-  return {
-    summary: `هذا الحديث الشريف يتحدث عن مبدأ مهم في الإسلام. يُرشدنا النبي ﷺ إلى قيمة عظيمة في حياتنا اليومية.`,
-    explanation: `في هذا الحديث النبوي الشريف "${truncated}..."، يوجّهنا رسول الله ﷺ إلى معنى عميق وقيمة أساسية في ديننا الحنيف. الحديث يحث المسلم على التحلي بالأخلاق الحسنة والعمل الصالح. وهذا من جوامع كلمه ﷺ التي تحمل معاني كثيرة في ألفاظ قليلة. والحديث يدل على أهمية تطبيق هذه القيم في حياتنا اليومية والتعامل مع الناس بالحسنى.`,
-    keywords: ["الأخلاق", "العمل الصالح", "السنة النبوية", "الإيمان"],
-  };
 }
