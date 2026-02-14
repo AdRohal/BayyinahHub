@@ -60,7 +60,46 @@ npm start
 ## API Endpoints
 
 - `POST /api/explain` - Get an AI-powered explanation of a Hadith text
-- `GET /api/search?q={query}` - Search for Hadiths by keyword
+- `GET /api/search?q={query}` - Search for Hadiths by keyword across multiple sources
+
+## Data Sources
+
+BayyinahHub integrates with multiple trusted Islamic knowledge sources:
+
+- **Sunnah.com API**: Complete hadith database with thousands of authentic hadiths
+  - Uses **paginated API calls** to fetch up to 1,000+ hadiths per search
+  - Makes multiple sequential requests (10 pages × 100 hadiths per page) to gather comprehensive results
+  - Automatically deduplicates results to ensure no repeated hadiths
+  - Each Imam/collection page loads **hundreds of hadiths** for that specific imam
+  - Covers all major hadith collections:
+    - صحيح البخاري (Sahih Bukhari) - 7,563 hadiths
+    - صحيح مسلم (Sahih Muslim) - 3,033 hadiths
+    - موطأ مالك (Muwatta Malik) - 1,594 hadiths
+    - سنن الترمذي (Sunan Tirmidhi) - 3,996 hadiths
+    - سنن ابن ماجه (Sunan Ibn Majah) - 4,341 hadiths
+    - سنن ابن داود (Sunan Abi Dawud) - 4,800 hadiths
+    - سنن النسائي (Sunan Nasai) - 5,761 hadiths
+    - مسند أحمد (Musnad Ahmad) - 26,000+ hadiths
+  - Each hadith includes: Arabic text, authenticity grade (Sahih/Hasan/Weak), book name, chapter, and hadith number
+
+- **Quran.com**: Comprehensive Islamic knowledge platform
+  - Complete Quran with translations and recitations
+  - Authentic Hadiths and Islamic teachings
+  - Islamic sciences and scholarly references
+  
+- **Dorar.net**: Certified platform for authentic Islamic content
+  - Trusted source for Hadith narration and verification
+  - Selected and authenticated hadiths
+
+- **Hisnmuslim.com**: Fortress of the Muslim application
+  - Daily supplications and authenticated hadiths
+  - Personal spiritual development resources
+
+All hadiths are authenticated and graded according to Islamic scholarly standards.
+
+## Fallback Data
+
+Comprehensive dataset of authentic hadiths used when API is unavailable.
 
 ## Project Structure
 

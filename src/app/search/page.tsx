@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface HadithResult {
   hadithNumber: string;
@@ -37,18 +38,28 @@ export default function SearchPage() {
         const populartopics = ["الصدقة", "الصبر", "بر الوالدين", "الصلاة", "النية", "الرحمة"];
         let allSuggestions: HadithResult[] = [];
         
-        // Fetch from multiple topics to get 6+ suggestions
-        for (const topic of populartopics.slice(0, 3)) {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(topic)}`);
-          const data = await res.json();
-          if (data.results && data.results.length > 0) {
-            allSuggestions.push(...data.results);
+        // Fetch from multiple topics with high limit to get comprehensive suggestions
+        for (const topic of populartopics) {
+          try {
+            const res = await fetch(`/api/search?q=${encodeURIComponent(topic)}&limit=300`);
+            const data = await res.json();
+            if (data.results && data.results.length > 0) {
+              allSuggestions.push(...data.results);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch topic ${topic}:`, err);
           }
           if (allSuggestions.length >= 6) break;
         }
         
-        setSuggestions(allSuggestions.slice(0, 6));
-      } catch {
+        // Remove duplicates
+        const uniqueSuggestions = Array.from(
+          new Map(allSuggestions.map(h => [h.hadithArabic, h])).values()
+        );
+        
+        setSuggestions(uniqueSuggestions.slice(0, 6));
+      } catch (err) {
+        console.error("Error loading suggestions:", err);
         setSuggestions([]);
       } finally {
         setSuggestionsLoading(false);
@@ -68,10 +79,21 @@ export default function SearchPage() {
     setAiExplanation(null);
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(finalQuery.trim())}`);
+      // Check if the query is a collection name to fetch all hadiths from that collection
+      const collectionNames = ["البخاري", "bukhari", "مسلم", "muslim", "مالك", "malik", "الترمذي", "tirmidhi", "أبي داود", "abi dawud", "ابن داود", "النسائي", "nasai", "ابن ماجه", "ibn majah", "أحمد", "ahmad"];
+      const isCollectionSearch = collectionNames.some(name => finalQuery.toLowerCase().includes(name.toLowerCase()));
+      
+      const url = isCollectionSearch 
+        ? `/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=100000`
+        : `/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=100000`;
+      
+      console.log(`🔍 Searching: ${url}`);
+      const res = await fetch(url);
       const data = await res.json();
+      console.log(`✅ Found ${data.results?.length || 0} results`);
       setResults(data.results || []);
-    } catch {
+    } catch (err) {
+      console.error("Error during search:", err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -193,8 +215,9 @@ export default function SearchPage() {
                         <p className="text-text/70 text-sm leading-relaxed group-hover:text-text truncate" dir="rtl">
                           {hadith.hadithArabic.substring(0, 80)}...
                         </p>
-                        <p className="text-gold/60 text-xs mt-1 group-hover:text-gold">
-                          📖 {hadith.collection}
+                        <p className="text-gold/60 text-xs mt-1 group-hover:text-gold flex items-center gap-1 justify-end">
+                          <Image src="/logos/logo.png" alt="Logo" width={14} height={14} className="object-contain" />
+                          {hadith.collection}
                         </p>
                       </motion.button>
                     ))}
@@ -262,9 +285,10 @@ export default function SearchPage() {
                 >
                   {/* Source badge */}
                   <div className="flex items-center gap-3 mb-4 flex-wrap">
-                    <span className="inline-flex items-center px-3 py-1 bg-gold/10 text-gold-deep text-xs font-semibold rounded-full">
-                      📖 {hadith.collection}
-                    </span>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-gold/10 rounded-full">
+                      <Image src="/logos/logo.png" alt="Logo" width={16} height={16} className="object-contain" />
+                      <span className="text-gold-deep text-xs font-semibold">{hadith.collection}</span>
+                    </div>
                     <span className="text-text/40 text-xs">
                       حديث رقم: {hadith.hadithNumber}
                     </span>
@@ -412,13 +436,14 @@ export default function SearchPage() {
                     className="group relative bg-white rounded-xl p-5 border border-gold/10 hover:border-gold/30 transition-all hover:shadow-md text-right"
                   >
                     <div className="absolute top-3 left-3">
-                      <span className="text-2xl">📖</span>
+                      <Image src="/logos/logo.png" alt="Logo" width={24} height={24} className="object-contain" />
                     </div>
                     <p className="text-sm text-text/70 leading-relaxed mb-3 group-hover:text-text line-clamp-3" dir="rtl">
                       {hadith.hadithArabic}
                     </p>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs bg-gold/10 text-gold-deep px-2.5 py-1 rounded-full">
+                      <span className="text-xs bg-gold/10 text-gold-deep px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <Image src="/logos/logo.png" alt="Logo" width={12} height={12} className="object-contain" />
                         {hadith.collection}
                       </span>
                       {hadith.grade && (

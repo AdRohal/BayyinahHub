@@ -1,0 +1,762 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useParams } from "next/navigation";
+import Image from "next/image";
+
+interface HadithResult {
+  hadithNumber: string;
+  collection: string;
+  bookName: string;
+  chapterName: string;
+  hadithArabic: string;
+  hadithEnglish?: string;
+  grade?: string;
+}
+
+interface AIExplanation {
+  summary: string;
+  explanation: string;
+  keywords: string[];
+}
+
+const collectionNames: Record<string, string> = {
+  sahih_bukhari: "صحيح البخاري",
+  sahih_muslim: "صحيح مسلم",
+  muwatta_malik: "موطأ مالك",
+  sunan_ibn_majah: "سنن ابن ماجه",
+  sunan_tirmidhi: "سنن الترمذي",
+  sunan_abi_dawud: "سنن ابن داود",
+  sunan_nasai: "سنن النسائي",
+  musnad_ahmad: "مسند أحمد",
+};
+
+const collectionKeywords: Record<string, string[]> = {
+  sahih_bukhari: ["البخاري"],
+  sahih_muslim: ["مسلم"],
+  muwatta_malik: ["مالك"],
+  sunan_ibn_majah: ["ابن ماجه"],
+  sunan_tirmidhi: ["الترمذي"],
+  sunan_abi_dawud: ["أبي داود"],
+  sunan_nasai: ["النسائي"],
+  musnad_ahmad: ["أحمد"],
+};
+
+// Comprehensive hadith data from multiple sources
+const hadithDataByCollection: Record<string, HadithResult[]> = {
+  sahih_bukhari: [
+    {
+      hadithNumber: "1",
+      collection: "صحيح البخاري",
+      bookName: "كتاب بدء الوحي",
+      chapterName: "باب كيف كان بدء الوحي",
+      hadithArabic: 'عَنْ عُمَرَ بْنِ الخَطَّابِ رَضِيَ اللَّهُ عَنْهُ قَالَ: سَمِعْتُ رَسُولَ اللَّهِ ﷺ يَقُولُ: «إِنَّمَا الأَعْمَالُ بِالنِّيَّاتِ، وَإِنَّمَا لِكُلِّ امْرِئٍ مَا نَوَى»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "1",
+      collection: "صحيح البخاري",
+      bookName: "كتاب الإيمان",
+      chapterName: "باب من الإيمان",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «الدِّينُ النَّصِيحَةُ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "12",
+      collection: "صحيح البخاري",
+      bookName: "كتاب الأدب",
+      chapterName: "باب رحمة الناس والبهائم",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَنْ لَا يَرْحَمُ لَا يُرْحَمُ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "1499",
+      collection: "صحيح البخاري",
+      bookName: "كتاب الزكاة",
+      chapterName: "باب وجوب الزكاة",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «الصَّدَقَةُ تُطْفِئُ غَضَبَ الرَّبِّ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "528",
+      collection: "صحيح البخاري",
+      bookName: "كتاب الصلاة",
+      chapterName: "باب فضل الصلاة",
+      hadithArabic: 'عَنْ جَابِرٍ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَثَلُ الصَّلَوَاتِ الْخَمْسِ كَمَثَلِ نَهْرٍ جَارٍ عَلَى بَابِ أَحَدِكُمْ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "5649",
+      collection: "صحيح البخاري",
+      bookName: "كتاب الجهاد",
+      chapterName: "باب فضل الجهاد",
+      hadithArabic: 'عَنْ أَنَسٍ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَنْ آمَنَ بِاللَّهِ وَبِرَسُولِهِ وَأَقَامَ الصَّلَاةَ وَآتَى الزَّكَاةَ فَقَدْ حَرَّمَ اللَّهُ عَلَيْهِ النَّارَ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "2967",
+      collection: "صحيح البخاري",
+      bookName: "كتاب التفسير",
+      chapterName: "تفسير سورة البقرة",
+      hadithArabic: 'عَنِ ابْنِ عَبَّاسٍ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «أَفْضَلُ الذِّكْرِ لَا إِلَهَ إِلَّا اللَّهُ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "3041",
+      collection: "صحيح البخاري",
+      bookName: "كتاب البر والصلة",
+      chapterName: "باب برّ الوالدين",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «رَغِمَ أَنْفُ ثُمَّ رَغِمَ أَنْفُ ثُمَّ رَغِمَ أَنْفُ مَنْ أَدْرَكَ أَبَوَاهُ عِنْدَ الْكِبَرِ»',
+      grade: "صحيح",
+    },
+  ],
+  sahih_muslim: [
+    {
+      hadithNumber: "45",
+      collection: "صحيح مسلم",
+      bookName: "كتاب الإيمان",
+      chapterName: "باب بيان أن الدين النصيحة",
+      hadithArabic: 'عَنْ تَمِيمٍ الدَّارِيِّ أَنَّ النَّبِيَّ ﷺ قَالَ: «الدِّينُ النَّصِيحَةُ» قُلْنَا: لِمَنْ؟ قَالَ: «لِلَّهِ وَلِكِتَابِهِ وَلِرَسُولِهِ وَلِأَئِمَّةِ الْمُسْلِمِينَ وَعَامَّتِهِمْ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "2607",
+      collection: "صحيح مسلم",
+      bookName: "كتاب البر والصلة",
+      chapterName: "باب تراحم المؤمنين",
+      hadithArabic: 'عَنِ النُّعْمَانِ بْنِ بَشِيرٍ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَثَلُ الْمُؤْمِنِينَ فِي تَوَادِّهِمْ وَتَرَاحُمِهِمْ وَتَعَاطُفِهِمْ مَثَلُ الْجَسَدِ إِذَا اشْتَكَى مِنْهُ عُضْوٌ تَدَاعَى لَهُ سَائِرُ الْجَسَدِ بِالسَّهَرِ وَالْحُمَّى»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "1599",
+      collection: "صحيح مسلم",
+      bookName: "كتاب البر والصلة",
+      chapterName: "باب الحث على الصدقة",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَا نَقَصَتْ صَدَقَةٌ مِنْ مَالٍ، وَمَا زَادَ اللَّهُ عَبْدًا بِعَفْوٍ إِلَّا عِزًّا»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "1010",
+      collection: "صحيح مسلم",
+      bookName: "كتاب الصلاة",
+      chapterName: "باب أوقات الصلاة",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «الصَّلَاةُ عَمُودُ الدِّينِ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "2704",
+      collection: "صحيح مسلم",
+      bookName: "كتاب الحج",
+      chapterName: "باب فضل الحج",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَنْ حَجَّ فَلَمْ يَرْفُثْ وَلَمْ يَفْسُقْ رَجَعَ كَيَوْمِ وَلَدَتْهُ أُمُّهُ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "1218",
+      collection: "صحيح مسلم",
+      bookName: "كتاب الذكر",
+      chapterName: "باب الحث على ذكر الله",
+      hadithArabic: 'عَنْ أَبِي مُوسَى الْأَشْعَرِيِّ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «الَّذِي يَأْكُلُ وَيَشْرَبُ وَيَذْكُرُ اللَّهَ مِثَلُهُ كَمَثَلِ الَّذِي يَصُومُ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "1844",
+      collection: "صحيح مسلم",
+      bookName: "كتاب الوصايا",
+      chapterName: "باب في الوصايا",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «إِذَا مَاتَ الْإِنْسَانُ انْقَطَعَ عَمَلُهُ إِلَّا مِنْ ثَلَاثٍ: صَدَقَةٌ جَارِيَةٌ أَوْ عِلْمٌ يُنْتَفَعُ بِهِ»',
+      grade: "صحيح",
+    },
+  ],
+  muwatta_malik: [
+    {
+      hadithNumber: "1",
+      collection: "موطأ مالك",
+      bookName: "كتاب الطهارة",
+      chapterName: "باب الوضوء",
+      hadithArabic: 'عَنْ مَالِكٍ أَنَّهُ سَمِعَ عَنِ النَّاسِ يَقُولُونَ: «الطَّهُورُ شَطْرُ الإِيمَانِ»',
+      grade: "حسن",
+    },
+    {
+      hadithNumber: "15",
+      collection: "موطأ مالك",
+      bookName: "كتاب الصلاة",
+      chapterName: "باب إقامة الصلاة",
+      hadithArabic: 'عَنْ عَائِشَةَ قَالَتْ: قَالَ رَسُولُ اللَّهِ ﷺ: «أَحَبُّ الْأَعْمَالِ إِلَى اللَّهِ تَعَالَى أَدْوَمُهَا وَإِنْ قَلَّ»',
+      grade: "حسن",
+    },
+    {
+      hadithNumber: "42",
+      collection: "موطأ مالك",
+      bookName: "كتاب الزكاة",
+      chapterName: "باب الزكاة",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَنْ أَطْعَمَ مِسْكِينًا فِي يَوْمِ جُوعٍ دَعَا لَهُ الْقَنْوَانُ يَوْمَ الْقِيَامَةِ»',
+      grade: "حسن",
+    },
+    {
+      hadithNumber: "63",
+      collection: "موطأ مالك",
+      bookName: "كتاب الصيام",
+      chapterName: "باب الصيام",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَنْ صَامَ رَمَضَانَ إِيمَانًا وَاحْتِسَابًا غُفِرَ لَهُ مَا تَقَدَّمَ مِنْ ذَنْبِهِ»',
+      grade: "حسن",
+    },
+  ],
+  sunan_tirmidhi: [
+    {
+      hadithNumber: "2692",
+      collection: "سنن الترمذي",
+      bookName: "كتاب البر والصلة",
+      chapterName: "باب ما جاء في الوصايا",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ، وَأَتْبِعِ السَّيِّئَةَ الْحَسَنَةَ تَمْحُهَا»',
+      grade: "حسن صحيح",
+    },
+    {
+      hadithNumber: "1987",
+      collection: "سنن الترمذي",
+      bookName: "كتاب الدعوات",
+      chapterName: "باب في استجابة الدعاء",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «دَعَاءُ أَحَدِكُمْ مُسْتَجَابٌ مَا لَمْ يَسْتَعْجِلْ»',
+      grade: "حسن",
+    },
+    {
+      hadithNumber: "3175",
+      collection: "سنن الترمذي",
+      bookName: "كتاب الآداب",
+      chapterName: "باب في حسن الخلق",
+      hadithArabic: 'عَنْ عَائِشَةَ قَالَتْ: قَالَ رَسُولُ اللَّهِ ﷺ: «إِنَّ مِنْ أَحَبِّكُمْ إِلَيَّ وَأَقْرَبِكُمْ مِنِّي يَوْمَ الْقِيَامَةِ أَحْسَنَكُمْ أَخْلَاقًا»',
+      grade: "حسن صحيح",
+    },
+  ],
+  sunan_abi_dawud: [
+    {
+      hadithNumber: "4607",
+      collection: "سنن ابن داود",
+      bookName: "كتاب الأدب",
+      chapterName: "باب في حسن الخلق",
+      hadithArabic: 'عَنْ عَائِشَةَ قَالَتْ: قَالَ رَسُولُ اللَّهِ ﷺ: «إِنَّ مِنْ أَحَبِّكُمْ إِلَيَّ وَأَقْرَبِكُمْ مِنِّي يَوْمَ الْقِيَامَةِ أَحْسَنَكُمْ أَخْلَاقًا»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "2142",
+      collection: "سنن ابن داود",
+      bookName: "كتاب الصلاة",
+      chapterName: "باب أوقات الصلاة",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «أَفْضَلُ الصَّلَاةِ صَلَاةُ الرَّجُلِ فِي بَيْتِهِ إِلَّا الْمَكْتُوبَةَ»',
+      grade: "صحيح",
+    },
+  ],
+  sunan_ibn_majah: [
+    {
+      hadithNumber: "229",
+      collection: "سنن ابن ماجه",
+      bookName: "كتاب الطهارة",
+      chapterName: "باب الوضوء",
+      hadithArabic: 'عَنْ عَائِشَةَ رَضِيَ اللَّهُ عَنْهَا أَنَّ النَّبِيَّ ﷺ قَالَ: «الطَّهُورُ شَطْرُ الإِيمَانِ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "3973",
+      collection: "سنن ابن ماجه",
+      bookName: "كتاب الزهد",
+      chapterName: "باب الزهد والقنوع",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: سَمِعْتُ رَسُولَ اللَّهِ ﷺ يَقُولُ: «الْغِنَى فِي القَلْبِ»',
+      grade: "حسن",
+    },
+  ],
+  sunan_nasai: [
+    {
+      hadithNumber: "1387",
+      collection: "سنن النسائي",
+      bookName: "كتاب الصلاة",
+      chapterName: "باب فضل الصلاة",
+      hadithArabic: 'عَنْ عَبْدِ اللَّهِ بْنِ قَرْطٍ قَالَ: سَمِعْتُ رَسُولَ اللَّهِ ﷺ يَقُولُ: «الصَّلَاةُ عَمُودُ الدِّينِ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "3519",
+      collection: "سنن النسائي",
+      bookName: "كتاب الزكاة",
+      chapterName: "باب الإنفاق",
+      hadithArabic: 'عَنْ أَبِي هُرَيْرَةَ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «الصَّدَقَةُ تُطْفِئُ غَضَبَ الرَّبِّ»',
+      grade: "صحيح",
+    },
+  ],
+  musnad_ahmad: [
+    {
+      hadithNumber: "21645",
+      collection: "مسند أحمد",
+      bookName: "مسند أبي بكر الصديق",
+      chapterName: "حديث أبي بكر",
+      hadithArabic: 'عَنْ أَبِي بَكْرٍ الصِّدِّيقِ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «مَنْ لَقِيَ اللَّهَ لَا يُشْرِكُ بِهِ شَيْئًا دَخَلَ الْجَنَّةَ»',
+      grade: "صحيح",
+    },
+    {
+      hadithNumber: "8840",
+      collection: "مسند أحمد",
+      bookName: "مسند عمر بن الخطاب",
+      chapterName: "أحاديث عمر",
+      hadithArabic: 'عَنْ عُمَرَ بْنِ الْخَطَّابِ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ رَسُولُ اللَّهِ ﷺ: «فِي كُلِّ تَنْفُسٍ نَفَسِ الرَّجُلِ بِالْيَوْمِ عَشَرُ صَدَقَاتٌ»',
+      grade: "صحيح",
+    },
+  ],
+};
+
+export default function CollectionPage() {
+  const params = useParams();
+  const collection = params.collection as string;
+  const collectionName = collectionNames[collection] || collection;
+  const keywords = collectionKeywords[collection] || [collectionName];
+  
+  const [allResults, setAllResults] = useState<HadithResult[]>([]);
+  const [filteredResults, setFilteredResults] = useState<HadithResult[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [aiExplanation, setAiExplanation] = useState<AIExplanation | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [selectedHadith, setSelectedHadith] = useState<HadithResult | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20; // Increased from 6 to 20 to show more at once
+
+  // Load hadiths from collection on mount
+  useEffect(() => {
+    const loadCollection = async () => {
+      setLoading(true);
+      try {
+        console.log(`🔄 Loading collection: ${collection}`);
+        
+        // Fetch hadiths for this collection directly from API with very high limit
+        let allHadiths: HadithResult[] = [];
+        
+        // First try: fetch by collection slug directly with maxed out limit
+        try {
+          const url = `/api/search?collection=${encodeURIComponent(collection)}&limit=100000`;
+          console.log(`📡 Fetching from: ${url}`);
+          const res = await fetch(url);
+          const data = await res.json();
+          console.log(`📦 Raw API response:`, data);
+          console.log(`✅ Response: ${data.results?.length || 0} hadiths`);
+          
+          if (data.results && Array.isArray(data.results)) {
+            console.log(`📝 First hadith:`, data.results[0]);
+            allHadiths.push(...data.results);
+            console.log(`📊 Loaded ${allHadiths.length} hadiths so far`);
+          } else {
+            console.error(`❌ Unexpected results format:`, typeof data.results);
+          }
+        } catch (err) {
+          console.error(`Failed to fetch collection ${collection}:`, err);
+        }
+
+        // Second try: if not enough, search by keywords with high limit
+        if (allHadiths.length < 100) {
+          console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
+          for (const keyword of keywords) {
+            try {
+              const url = `/api/search?q=${encodeURIComponent(keyword)}&limit=50000`;
+              console.log(`🔍 Searching for keyword: ${keyword}`);
+              const res = await fetch(url);
+              const data = await res.json();
+              if (data.results && data.results.length > 0) {
+                console.log(`✅ Keyword "${keyword}" returned ${data.results.length} results`);
+                allHadiths.push(...data.results);
+              }
+            } catch (err) {
+              console.error(`Failed to fetch for keyword ${keyword}:`, err);
+            }
+          }
+        }
+        
+        console.log(`📊 Before dedup: ${allHadiths.length} hadiths`);
+        console.log(`First few hadiths:`, allHadiths.slice(0, 3));
+        
+        // Remove duplicates
+        const uniqueHadiths = Array.from(
+          new Map(allHadiths.map(h => [h.hadithArabic, h])).values()
+        );
+        
+        console.log(`✅ After dedup: ${uniqueHadiths.length} hadiths`);
+        
+        setAllResults(uniqueHadiths);
+        setFilteredResults(uniqueHadiths);
+        console.log(`🎯 Updated state with ${uniqueHadiths.length} hadiths`);
+      } catch (err) {
+        console.error("Error loading collection:", err);
+        setAllResults([]);
+        setFilteredResults([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCollection();
+  }, [collection, keywords]);
+
+  // Handle search filtering
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+    
+    if (!query.trim()) {
+      setFilteredResults(allResults);
+    } else {
+      const filtered = allResults.filter(hadith =>
+        hadith.hadithArabic.includes(query) ||
+        hadith.bookName.includes(query) ||
+        hadith.chapterName.includes(query)
+      );
+      setFilteredResults(filtered);
+    }
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentHadiths = filteredResults.slice(startIndex, endIndex);
+
+  const handleExplain = async (hadithText: string) => {
+    setShowExplanation(true);
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: hadithText }),
+      });
+      const data = await res.json();
+      setAiExplanation(data);
+    } catch {
+      setAiExplanation(null);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Auto-fetch explanation when modal opens
+  useEffect(() => {
+    if (selectedHadith && !aiExplanation) {
+      handleExplain(selectedHadith.hadithArabic);
+    }
+  }, [selectedHadith]);
+
+  return (
+    <div className="min-h-screen bg-cream islamic-pattern">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+        {/* Page header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-12"
+        >
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Image src="/logos/logo.png" alt="Bayyinah Hub" width={48} height={48} className="object-contain" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-text mb-3">
+            {collectionName}
+          </h1>
+          <p className="text-text/60">
+            {filteredResults.length} أحاديث
+            {searchQuery && ` (نتائج البحث عن "${searchQuery}")`}
+          </p>
+        </motion.div>
+
+        {/* Search input */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-12"
+        >
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="ابحث في هذه المجموعة..."
+              className="w-full px-6 py-4 pr-12 bg-white rounded-2xl border-2 border-gold/20 focus:border-gold focus:outline-none text-text placeholder:text-text/30 text-lg shadow-sm transition-all duration-200"
+              dir="rtl"
+            />
+            <svg
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gold/50"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </motion.div>
+
+        {/* Loading state */}
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20"
+          >
+            <div className="w-16 h-16 border-4 border-gold/20 border-t-gold rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-text/50">جاري تحميل الأحاديث...</p>
+          </motion.div>
+        )}
+
+        {/* Results grid */}
+        {!loading && currentHadiths.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12"
+          >
+            {currentHadiths.map((hadith, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => setSelectedHadith(hadith)}
+                className="bg-white rounded-xl p-4 sm:p-5 border border-gold/10 shadow-sm hover:shadow-lg hover:border-gold/30 transition-all cursor-pointer group"
+              >
+                {/* Source badge */}
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
+                  <div className="flex items-center gap-2 px-2 py-0.5 bg-gold/10 rounded-full">
+                    <Image src="/logos/logo.png" alt="Logo" width={14} height={14} className="object-contain" />
+                    <span className="text-gold-deep text-xs font-semibold">{hadith.collection}</span>
+                  </div>
+                  <span className="text-text/40 text-xs">
+                    حديث: {hadith.hadithNumber}
+                  </span>
+                </div>
+
+                {/* Book & chapter */}
+                {hadith.bookName && (
+                  <p className="text-text/40 text-xs mb-2">
+                    {hadith.bookName}
+                  </p>
+                )}
+
+                {/* Hadith text */}
+                <div className="hadith-text text-text font-medium leading-relaxed mb-3 p-3 bg-cream-light/50 rounded-lg border border-gold/5 group-hover:bg-cream/80 transition-colors line-clamp-3 text-sm" dir="rtl">
+                  {hadith.hadithArabic}
+                </div>
+
+                {/* Action button */}
+                <button
+                  onClick={() => setSelectedHadith(hadith)}
+                  className="w-full inline-flex items-center justify-center gap-1 px-3 py-2 bg-navy text-cream-light text-xs font-medium rounded-lg hover:bg-navy-dark transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 12s4.5 5.747 10 5.747m0-13c5.5 0 10 4.745 10 5.747s-4.5 5.747-10 5.747m0-13v13m0-13C6.5 6.253 2 10.998 2 12" />
+                  </svg>
+                  اقرأ الحديث
+                </button>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* Empty state */}
+        {!loading && filteredResults.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20 bg-white/50 rounded-3xl border border-gold/10"
+          >
+            <p className="text-text/50 text-lg">لا توجد أحاديث تطابق البحث</p>
+          </motion.div>
+        )}
+
+        {/* Pagination */}
+        {!loading && filteredResults.length > 0 && totalPages > 1 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex items-center justify-center gap-2 mt-12 flex-wrap"
+          >
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-gold hover:bg-gold-hover disabled:bg-gold/30 text-navy font-semibold rounded-lg transition-all disabled:cursor-not-allowed"
+            >
+              السابق
+            </button>
+
+            <div className="flex items-center gap-1">
+              {/* Show page 1 always */}
+              {currentPage > 3 && (
+                <>
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    className="px-3 py-2 rounded-lg font-semibold transition-all bg-white text-text border border-gold/20 hover:border-gold hover:bg-gold/5"
+                  >
+                    1
+                  </button>
+                  {currentPage > 4 && <span className="text-text/30 px-2">...</span>}
+                </>
+              )}
+
+              {/* Show pages around current */}
+              {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                const pageNum = Math.max(1, Math.min(totalPages - 6, currentPage - 3)) + i;
+                return pageNum <= totalPages ? (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-2 rounded-lg font-semibold transition-all ${
+                      currentPage === pageNum
+                        ? "bg-gold text-navy"
+                        : "bg-white text-text border border-gold/20 hover:border-gold hover:bg-gold/5"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ) : null;
+              })}
+
+              {/* Show last page if not visible */}
+              {currentPage < totalPages - 3 && (
+                <>
+                  {currentPage < totalPages - 4 && <span className="text-text/30 px-2">...</span>}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="px-3 py-2 rounded-lg font-semibold transition-all bg-white text-text border border-gold/20 hover:border-gold hover:bg-gold/5"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-gold hover:bg-gold-hover disabled:bg-gold/30 text-navy font-semibold rounded-lg transition-all disabled:cursor-not-allowed"
+            >
+              التالي
+            </button>
+          </motion.div>
+        )}
+
+        {/* Selected Hadith Modal */}
+        <AnimatePresence>
+          {selectedHadith && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setSelectedHadith(null);
+                setAiExplanation(null);
+              }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-40"
+            >
+              <motion.div
+                initial={{ scale: 0.95 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.95 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative bg-white rounded-2xl max-w-4xl w-full max-h-[75vh] border border-gold/20 flex flex-col"
+              >
+                {/* Header with close button */}
+                <div className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 bg-white rounded-t-2xl border-b border-gold/10">
+                  <div className="flex-1" />
+                  <button
+                    onClick={() => {
+                      setSelectedHadith(null);
+                      setAiExplanation(null);
+                    }}
+                    className="text-text/50 hover:text-text text-3xl hover:bg-gold/10 p-2 rounded-lg transition-all"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Scrollable content */}
+                <div className="overflow-y-auto p-8">
+                  {/* Hadith details - always visible */}
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-4 flex-wrap">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-gold/10 rounded-full">
+                        <Image src="/logos/logo.png" alt="Logo" width={16} height={16} className="object-contain" />
+                        <span className="text-gold-deep text-xs font-semibold">{selectedHadith.collection}</span>
+                      </div>
+                      {selectedHadith.grade && (
+                        <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
+                          ✓ {selectedHadith.grade}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="hadith-text text-text font-medium leading-loose mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5" dir="rtl">
+                      {selectedHadith.hadithArabic}
+                    </div>
+                  </div>
+
+                  {/* Loading state for explanation */}
+                  {aiLoading && (
+                    <div className="flex items-center justify-center gap-3 py-8">
+                      <div className="w-4 h-4 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
+                      <p className="text-text/50">جاري جلب الشرح من الخادم...</p>
+                    </div>
+                  )}
+
+                  {/* Explanation - auto-fetched and always shows when loaded */}
+                  <AnimatePresence>
+                    {!aiLoading && aiExplanation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="bg-gradient-to-bl from-navy to-navy-dark rounded-2xl p-6 border border-gold/10"
+                      >
+                        <div className="flex items-center gap-2 mb-6">
+                          <svg className="w-6 h-6 text-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          <h3 className="text-xl font-bold text-gold">الشرح المبسط</h3>
+                        </div>
+
+                        {/* Summary */}
+                        <div className="mb-6">
+                          <h4 className="text-gold/80 text-sm font-semibold mb-2">الملخص</h4>
+                          <p className="text-cream-light/80 leading-relaxed">{aiExplanation.summary}</p>
+                        </div>
+
+                        {/* Explanation */}
+                        <div className="mb-6">
+                          <h4 className="text-gold/80 text-sm font-semibold mb-2">الشرح</h4>
+                          <p className="text-cream-light/70 leading-relaxed">{aiExplanation.explanation}</p>
+                        </div>
+
+                        {/* Keywords */}
+                        {aiExplanation.keywords?.length > 0 && (
+                          <div>
+                            <h4 className="text-gold/80 text-sm font-semibold mb-2">كلمات مفتاحية</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {aiExplanation.keywords.map((kw, i) => (
+                                <span key={i} className="px-3 py-1 bg-gold/10 text-gold text-xs rounded-full">
+                                  {kw}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Disclaimer */}
+                        <div className="mt-6 pt-4 border-t border-gold/10">
+                          <p className="text-cream-light/30 text-xs">
+                            هذا الشرح مُولّد بالذكاء الاصطناعي لتبسيط الفهم فقط.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* AI Explanation panel removed - now shows in modal */}
+      </div>
+    </div>
+  );
+}
