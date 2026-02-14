@@ -9,7 +9,7 @@ export default function Logo({ className = "", size = "md" }: { className?: stri
   const s = sizes[size];
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-3 ${className}`} suppressHydrationWarning>
       {/* Logo icon */}
       <Image
         src="/logos/logo.png"

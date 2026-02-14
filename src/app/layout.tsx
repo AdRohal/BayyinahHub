@@ -22,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl">
-      <body className={`${notoSansArabic.variable} antialiased`}>
+    <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+      <body suppressHydrationWarning className={`${notoSansArabic.variable} antialiased`}>
         <Navbar />
         <main>{children}</main>
         <Footer />

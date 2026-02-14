@@ -416,7 +416,6 @@ export default function CollectionPage() {
   const currentHadiths = filteredResults.slice(startIndex, endIndex);
 
   const handleExplain = async (hadithText: string) => {
-    setShowExplanation(true);
     setAiLoading(true);
     try {
       const res = await fetch("/api/explain", {
