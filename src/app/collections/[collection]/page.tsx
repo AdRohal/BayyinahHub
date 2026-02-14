@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 
 interface HadithResult {
   hadithNumber: string;
@@ -27,9 +26,25 @@ const collectionNames: Record<string, string> = {
   muwatta_malik: "موطأ مالك",
   sunan_ibn_majah: "سنن ابن ماجه",
   sunan_tirmidhi: "سنن الترمذي",
-  sunan_abi_dawud: "سنن ابن داود",
+  sunan_abi_dawud: "سنن أبي داود",
   sunan_nasai: "سنن النسائي",
-  musnad_ahmad: "مسند أحمد",
+  musnad_ahmad: "مسند الإمام أحمد",
+};
+
+// Map API collection names to Arabic names
+const collectionApiNameMap: Record<string, string> = {
+  "ara-bukhari": "صحيح البخاري",
+  "ara-muslim": "صحيح مسلم",
+  "ara-malik": "موطأ مالك",
+  "ara-ibnmajah": "سنن ابن ماجه",
+  "ara-tirmidhi": "سنن الترمذي",
+  "ara-abudawud": "سنن أبي داود",
+  "ara-nasai": "سنن النسائي",
+  "ara-ahmad": "مسند الإمام أحمد",
+};
+
+const getCollectionArabicName = (name: string): string => {
+  return collectionApiNameMap[name.toLowerCase()] || collectionNames[name] || name;
 };
 
 const collectionKeywords: Record<string, string[]> = {
@@ -416,7 +431,6 @@ export default function CollectionPage() {
   const currentHadiths = filteredResults.slice(startIndex, endIndex);
 
   const handleExplain = async (hadithText: string) => {
-    setShowExplanation(true);
     setAiLoading(true);
     try {
       const res = await fetch("/api/explain", {
@@ -433,13 +447,6 @@ export default function CollectionPage() {
     }
   };
 
-  // Auto-fetch explanation when modal opens
-  useEffect(() => {
-    if (selectedHadith && !aiExplanation) {
-      handleExplain(selectedHadith.hadithArabic);
-    }
-  }, [selectedHadith]);
-
   return (
     <div className="min-h-screen bg-cream islamic-pattern">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
@@ -450,7 +457,8 @@ export default function CollectionPage() {
           className="text-center mb-12"
         >
           <div className="flex items-center justify-center gap-3 mb-4">
-            <Image src="/logos/logo.png" alt="Bayyinah Hub" width={48} height={48} className="object-contain" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/logo.png" alt="Bayyinah Hub" width={48} height={48} className="object-contain" suppressHydrationWarning />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold text-text mb-3">
             {collectionName}
@@ -513,41 +521,43 @@ export default function CollectionPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
                 onClick={() => setSelectedHadith(hadith)}
-                className="bg-white rounded-xl p-4 sm:p-5 border border-gold/10 shadow-sm hover:shadow-lg hover:border-gold/30 transition-all cursor-pointer group"
+                className="bg-white rounded-xl border border-gold/10 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all cursor-pointer group h-full flex flex-col overflow-hidden hover:translate-y-[-2px]"
               >
-                {/* Source badge */}
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <div className="flex items-center gap-2 px-2 py-0.5 bg-gold/10 rounded-full">
-                    <Image src="/logos/logo.png" alt="Logo" width={14} height={14} className="object-contain" />
-                    <span className="text-gold-deep text-xs font-semibold">{hadith.collection}</span>
+                {/* Top accent bar */}
+                <div className="h-1 bg-gradient-to-r from-gold via-gold/80 to-gold/60" />
+
+                {/* Content */}
+                <div className="flex flex-col h-full p-4">
+                  {/* Collection badge */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gold/10 rounded-full">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/logos/logo.png" alt="Logo" width={12} height={12} className="object-contain" suppressHydrationWarning />
+                      <span className="text-gold-deep text-xs font-bold">{getCollectionArabicName(hadith.collection)}</span>
+                    </div>
+                    <span className="text-text/30 text-xs font-medium">
+                      #{hadith.hadithNumber}
+                    </span>
                   </div>
-                  <span className="text-text/40 text-xs">
-                    حديث: {hadith.hadithNumber}
-                  </span>
+
+                  {/* Hadith text - improved styling */}
+                  <div className="hadith-text text-text font-semibold leading-relaxed mb-auto text-sm line-clamp-4 group-hover:text-text/90 transition-colors" dir="rtl">
+                    {hadith.hadithArabic}
+                  </div>
+
+                  {/* Indicators and CTA */}
+                  <div className="mt-4 pt-3 border-t border-gold/5 flex items-center justify-between gap-2">
+                    <span className="text-gold/50 text-xs flex items-center gap-1">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10.5 1.5H5.75A2.25 2.25 0 003.5 3.75v12.5A2.25 2.25 0 005.75 18.5h8.5a2.25 2.25 0 002.25-2.25V9" />
+                      </svg>
+                      اقرأ المزيد
+                    </span>
+                    <svg className="w-4 h-4 text-gold/40 group-hover:text-gold group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </div>
                 </div>
-
-                {/* Book & chapter */}
-                {hadith.bookName && (
-                  <p className="text-text/40 text-xs mb-2">
-                    {hadith.bookName}
-                  </p>
-                )}
-
-                {/* Hadith text */}
-                <div className="hadith-text text-text font-medium leading-relaxed mb-3 p-3 bg-cream-light/50 rounded-lg border border-gold/5 group-hover:bg-cream/80 transition-colors line-clamp-3 text-sm" dir="rtl">
-                  {hadith.hadithArabic}
-                </div>
-
-                {/* Action button */}
-                <button
-                  onClick={() => setSelectedHadith(hadith)}
-                  className="w-full inline-flex items-center justify-center gap-1 px-3 py-2 bg-navy text-cream-light text-xs font-medium rounded-lg hover:bg-navy-dark transition-colors"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C6.5 6.253 2 10.998 2 12s4.5 5.747 10 5.747m0-13c5.5 0 10 4.745 10 5.747s-4.5 5.747-10 5.747m0-13v13m0-13C6.5 6.253 2 10.998 2 12" />
-                  </svg>
-                  اقرأ الحديث
-                </button>
               </motion.div>
             ))}
           </motion.div>
@@ -645,6 +655,7 @@ export default function CollectionPage() {
               onClick={() => {
                 setSelectedHadith(null);
                 setAiExplanation(null);
+                setAiLoading(false);
               }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-40"
             >
@@ -662,6 +673,7 @@ export default function CollectionPage() {
                     onClick={() => {
                       setSelectedHadith(null);
                       setAiExplanation(null);
+                      setAiLoading(false);
                     }}
                     className="text-text/50 hover:text-text text-3xl hover:bg-gold/10 p-2 rounded-lg transition-all"
                   >
@@ -675,8 +687,9 @@ export default function CollectionPage() {
                   <div className="mb-6">
                     <div className="flex items-center gap-2 mb-4 flex-wrap">
                       <div className="flex items-center gap-2 px-3 py-1 bg-gold/10 rounded-full">
-                        <Image src="/logos/logo.png" alt="Logo" width={16} height={16} className="object-contain" />
-                        <span className="text-gold-deep text-xs font-semibold">{selectedHadith.collection}</span>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/logos/logo.png" alt="Logo" width={16} height={16} className="object-contain" suppressHydrationWarning />
+                      <span className="text-gold-deep text-xs font-semibold">{getCollectionArabicName(selectedHadith.collection)}</span>
                       </div>
                       {selectedHadith.grade && (
                         <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
@@ -688,6 +701,20 @@ export default function CollectionPage() {
                     <div className="hadith-text text-text font-medium leading-loose mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5" dir="rtl">
                       {selectedHadith.hadithArabic}
                     </div>
+
+                    {/* Explain button */}
+                    {!aiExplanation ? (
+                      <button
+                        onClick={() => handleExplain(selectedHadith.hadithArabic)}
+                        disabled={aiLoading}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-dark disabled:bg-navy/50 text-cream-light font-semibold rounded-xl transition-all transition-shadow hover:shadow-lg hover:shadow-navy/20 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0114 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        {aiLoading ? "جاري الشرح..." : "شرح بالذكاء الاصطناعي"}
+                      </button>
+                    ) : null}
                   </div>
 
                   {/* Loading state for explanation */}

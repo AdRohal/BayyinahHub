@@ -28,9 +28,7 @@
   background: var(--color-gold-deep);
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* scroll-behavior handled by Next.js via data-scroll-behavior attribute */
 
 body {
   background: var(--color-cream);

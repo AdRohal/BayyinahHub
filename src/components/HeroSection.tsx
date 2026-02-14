@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 
 export default function HeroSection() {
   return (
@@ -27,7 +26,8 @@ export default function HeroSection() {
               transition={{ delay: 0.15, duration: 0.5 }}
               className="inline-flex items-center gap-2 mb-4"
             >
-              <Image src="/logos/logo.png" alt="Bayyinah Hub" width={36} height={36} className="object-contain" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logos/logo.png" alt="Bayyinah Hub" width={36} height={36} className="object-contain" suppressHydrationWarning />
               <div>
                 <span className="text-xl font-bold text-gold">مركز البيّنة</span>
                 <span className="block text-[10px] text-gold/60 tracking-widest" style={{ direction: "ltr", textAlign: "right" }}>
@@ -104,7 +104,8 @@ export default function HeroSection() {
                 className="absolute top-0 right-0 w-[240px] h-[300px] sm:w-[270px] sm:h-[330px] bg-white rounded-2xl shadow-2xl border border-gold/10 flex flex-col items-center justify-center p-6"
               >
                 <div className="w-24 h-24 sm:w-28 sm:h-28 bg-cream rounded-xl flex items-center justify-center mb-5 shadow-inner">
-                  <Image src="/logos/logo.png" alt="Bayyinah Hub Logo" width={56} height={56} className="object-contain" />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/logos/logo.png" alt="Bayyinah Hub Logo" width={56} height={56} className="object-contain" suppressHydrationWarning />
                 </div>
                 <h3 className="text-xl font-bold text-gold mb-1">مركز البيّنة</h3>
                 <p className="text-xs text-text/40 tracking-wider" style={{ direction: "ltr" }}>Bayyinah Hub</p>

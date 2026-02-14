@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Strip Arabic diacritics (tashkeel) for text matching
+function stripDiacritics(text: string): string {
+  return text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/g, "");
+}
+
 // Map collection names to API book names
 const collectionMap: Record<string, string> = {
   "bukhari": "ara-bukhari",
@@ -45,6 +50,7 @@ export async function GET(request: NextRequest) {
 
   try {
     let bookName = "";
+    let isTopicSearch = false;
     
     // Determine which collection to fetch
     if (collectionParam) {
@@ -62,61 +68,125 @@ export async function GET(request: NextRequest) {
       }
       
       if (!bookName) {
-        // If no collection match, treat as text search
-        console.log(`🔍 Text search: "${query}"`);
-        return NextResponse.json({ results: [] }); // Text search not supported yet
+        // Treat as topic/text search - fetch multiple collections
+        console.log(`🔍 Topic search: "${query}" - fetching from major collections`);
+        isTopicSearch = true;
       }
     }
 
-    if (!bookName) {
-      return NextResponse.json({ results: [] });
-    }
+    if (isTopicSearch) {
+      // Topic search - fetch from multiple collections
+      const collectionsToSearch = [
+        "ara-bukhari",
+        "ara-muslim",
+        "ara-malik",
+        "ara-tirmidhi",
+        "ara-abudawud",
+        "ara-nasai",
+        "ara-ibnmajah",
+      ];
 
-    // Fetch entire collection from Fawazahmed0 API
-    console.log(`📡 Fetching from Fawazahmed0 Hadith API...`);
-    const apiUrl = `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${bookName}.json`;
-    
-    const response = await fetch(apiUrl, {
-      headers: {
-        "Accept": "application/json",
-        "User-Agent": "BayyinahHub/1.0"
-      },
-      signal: AbortSignal.timeout(30000),
-    });
+      for (const collection of collectionsToSearch) {
+        try {
+          console.log(`📡 Fetching ${collection}...`);
+          const apiUrl = `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${collection}.json`;
+          
+          const response = await fetch(apiUrl, {
+            headers: {
+              "Accept": "application/json",
+              "User-Agent": "BayyinahHub/1.0"
+            },
+            signal: AbortSignal.timeout(10000),
+          });
 
-    if (!response.ok) {
-      console.error(`❌ API error: ${response.status}`);
-      return NextResponse.json({ 
-        results: [],
-        error: `Failed to fetch from API: ${response.status}`
-      });
-    }
+          if (response.ok) {
+            const data = await response.json();
+            
+            if (data.hadiths && Array.isArray(data.hadiths)) {
+              const searchTerm = stripDiacritics(query!);
+              const filtered = data.hadiths
+                .filter((h: any) => {
+                  const text = stripDiacritics(h.text || "");
+                  const book = stripDiacritics(h.book?.name || "");
+                  const chapter = stripDiacritics(h.chapter?.name || h.chapter || "");
+                  
+                  // Match if query appears in text, book name, or chapter
+                  return text.includes(searchTerm) || 
+                         book.includes(searchTerm) || 
+                         chapter.includes(searchTerm);
+                })
+                .map((h: any) => ({
+                  hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
+                  collection: data.collection_name || h.collection || collection,
+                  bookName: h.book?.name || h.bookName || "",
+                  chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
+                  hadithArabic: h.text || "",
+                  hadithEnglish: h.text || "",
+                  grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
+                  narrator: h.narrator || h.reporter || "",
+                  source: "fawazahmed0"
+                }));
 
-    const data = await response.json();
-    
-    // Parse the collection data
-    if (data.hadiths && Array.isArray(data.hadiths)) {
-      console.log(`📥 Received ${data.hadiths.length} hadiths from collection`);
-      
-      allResults = data.hadiths.map((h: any) => ({
-        hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
-        collection: data.collection_name || h.collection || bookName,
-        bookName: h.book?.name || h.bookName || "",
-        chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
-        hadithArabic: h.text || h.english || h.translation || "", // Fawazahmed API returns 'text' in English
-        hadithEnglish: h.text || h.english || h.translation || "",
-        grade: h.grade || h.grades?.[0] || "",
-        narrator: h.narrator || h.reporter || "",
-        source: "fawazahmed0"
-      })).filter((h: any) => h.hadithArabic && h.hadithArabic.trim().length > 10);
-
-      console.log(`✅ Parsed ${allResults.length} valid hadiths`);
+              allResults.push(...filtered);
+              console.log(`✅ ${collection}: Found ${filtered.length} hadiths`);
+            }
+          }
+        } catch (e) {
+          console.warn(`⚠️  Failed to fetch ${collection}:`, e);
+        }
+      }
     } else {
-      console.error(`❌ Unexpected response format:`, Object.keys(data).slice(0, 5));
-      return NextResponse.json({
-        results: [],
-        error: "Unexpected API response format"
+      // Collection-specific search
+      if (!bookName) {
+        return NextResponse.json({ results: [] });
+      }
+
+      // Fetch entire collection from Fawazahmed0 API
+      console.log(`📡 Fetching from Fawazahmed0 Hadith API...`);
+      const apiUrl = `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${bookName}.json`;
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "BayyinahHub/1.0"
+        },
+        signal: AbortSignal.timeout(30000),
       });
+
+      if (!response.ok) {
+        console.error(`❌ API error: ${response.status}`);
+        return NextResponse.json({ 
+          results: [],
+          error: `Failed to fetch from API: ${response.status}`
+        });
+      }
+
+      const data = await response.json();
+      
+      // Parse the collection data
+      if (data.hadiths && Array.isArray(data.hadiths)) {
+        console.log(`📥 Received ${data.hadiths.length} hadiths from collection`);
+        
+        allResults = data.hadiths.map((h: any) => ({
+          hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
+          collection: data.collection_name || h.collection || bookName,
+          bookName: h.book?.name || h.bookName || "",
+          chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
+          hadithArabic: h.text || h.english || h.translation || "",
+          hadithEnglish: h.text || h.english || h.translation || "",
+          grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
+          narrator: h.narrator || h.reporter || "",
+          source: "fawazahmed0"
+        })).filter((h: any) => h.hadithArabic && h.hadithArabic.trim().length > 10);
+
+        console.log(`✅ Parsed ${allResults.length} valid hadiths`);
+      } else {
+        console.error(`❌ Unexpected response format:`, Object.keys(data).slice(0, 5));
+        return NextResponse.json({
+          results: [],
+          error: "Unexpected API response format"
+        });
+      }
     }
 
   } catch (error) {
@@ -130,7 +200,7 @@ export async function GET(request: NextRequest) {
 
   // Remove duplicates
   const uniqueResults = Array.from(
-    new Map(allResults.map(h => [h.hadithEnglish.trim(), h])).values()
+    new Map(allResults.map(h => [h.hadithArabic.trim(), h])).values()
   );
 
   // Sort by hadith number
