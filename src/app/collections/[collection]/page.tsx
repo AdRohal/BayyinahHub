@@ -14,6 +14,15 @@ interface HadithResult {
   grade?: string;
 }
 
+interface IslamicConcept {
+  id: string;
+  arabicWord: string;
+  transliteration: string;
+  meaning: string;
+  explanation: string;
+  category: string;
+}
+
 interface AIExplanation {
   summary: string;
   explanation: string;
@@ -29,6 +38,7 @@ const collectionNames: Record<string, string> = {
   sunan_abi_dawud: "سنن أبي داود",
   sunan_nasai: "سنن النسائي",
   musnad_ahmad: "مسند الإمام أحمد",
+  mouhtarahat: "المختارات",
 };
 
 // Map API collection names to Arabic names
@@ -56,6 +66,7 @@ const collectionKeywords: Record<string, string[]> = {
   sunan_abi_dawud: ["أبي داود"],
   sunan_nasai: ["النسائي"],
   musnad_ahmad: ["أحمد"],
+  mouhtarahat: ["المختارات", "كلمات", "مفاهيم"],
 };
 
 // Comprehensive hadith data from multiple sources
@@ -318,84 +329,178 @@ const hadithDataByCollection: Record<string, HadithResult[]> = {
   ],
 };
 
+// Islamic Concepts Data
+const islamicConceptsData: IslamicConcept[] = [
+  {
+    id: "1",
+    arabicWord: "الصدقة",
+    transliteration: "Sadaqah",
+    meaning: "صدقة تعني الهبة أو العطية، وهي إنفاق المال في سبيل الله",
+    explanation: "الصدقة هي فعل الخير والعطف على الفقراء والمحتاجين. وهي من أفضل الأعمال في الإسلام، وتطهر النفس من البخل والطمع. قال تعالى: \"الصدقات للفقراء والمساكين والعاملين عليها\".",
+    category: "العبادات والأخلاق",
+  },
+  {
+    id: "2",
+    arabicWord: "الفقر",
+    transliteration: "Faqr",
+    meaning: "الفقر هو الحاجة والعوز والافتقار إلى المال والموارد",
+    explanation: "الفقر في الإسلام ليس عيبًا بل قد يكون اختبارًا من الله. قال رسول الله ﷺ: \"الفقر فخري، والفقر إلى الله فخري\". وعلينا أن نتعامل مع الفقراء برحمة وعطف.",
+    category: "الحالات الاجتماعية",
+  },
+  {
+    id: "3",
+    arabicWord: "الصبر",
+    transliteration: "Sabr",
+    meaning: "الصبر هو حبس النفس عن الجزع والشكوى عند الابتلاء",
+    explanation: "الصبر من أعظم الأخلاق في الإسلام. يقول الله تعالى: \"إِنَّمَا يُوَفَّى الصابرون أجرهم بغير حساب\". الصبر على الابتلاءات والمشاق ينال أجرًا عظيمًا من الله.",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "4",
+    arabicWord: "الرحمة",
+    transliteration: "Ar-Rahmah",
+    meaning: "الرحمة هي الرقة والعطف والرفق بالآخرين",
+    explanation: "الرحمة صفة من صفات الله تعالى، وهي مطلوبة من المسلمين تجاه بعضهم البعض. قال رسول الله ﷺ: \"الراحمون يرحمهم الرحمن، ارحموا من في الأرض يرحمكم من في السماء\".",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "5",
+    arabicWord: "التقوى",
+    transliteration: "Taqwa",
+    meaning: "التقوى هي خشية الله والخوف منه والامتثال لأوامره واجتناب نواهيه",
+    explanation: "التقوى هي أساس التدين الحقيقي. يقول الله تعالى: \"أَتَقُونَ بِاللَّهِ جُنَّةً\". المتقي هو من يراقب الله في كل أعماله وأقواله.",
+    category: "الإيمان والعقيدة",
+  },
+  {
+    id: "6",
+    arabicWord: "الإحسان",
+    transliteration: "Ihsan",
+    meaning: "الإحسان هو أداء العمل بأحسن صورة وتحسينه وإتقانه",
+    explanation: "الإحسان درجة عليا في العبادة والعمل. قال رسول الله ﷺ: \"إن الله يحب إذا عمل أحدكم عملًا أن يحسنه\". الإحسان يعني أن تعبد الله كأنك تراه أو على الأقل كأنه يراك.",
+    category: "العبادات والأخلاق",
+  },
+  {
+    id: "7",
+    arabicWord: "الدعاء",
+    transliteration: "Dua",
+    meaning: "الدعاء هو طلب العبد من الله ما يحتاجه ويرغبه",
+    explanation: "الدعاء هو العبادة كما قال رسول الله ﷺ. وهو وسيلة التواصل بين العبد وربه. والله يحب أن يدعوه عباده ويستجيب دعاءهم.",
+    category: "العبادات والأخلاق",
+  },
+  {
+    id: "8",
+    arabicWord: "الأمانة",
+    transliteration: "Al-Amanah",
+    meaning: "الأمانة هي حفظ ما يُؤتمن عليه والقيام به على أحسن وجه",
+    explanation: "الأمانة من أهم الصفات المطلوبة. قال الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُكُمْ أَن تُؤَدُّوا الْأَمَانَاتِ إِلَىٰ أَهْلِهَا\". المسلم يجب أن يكون أمينًا في كل مسؤولياته.",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "9",
+    arabicWord: "العدل",
+    transliteration: "Al-Adl",
+    meaning: "العدل هو إعطاء كل ذي حق حقه والإنصاف بين الناس",
+    explanation: "العدل من أساسيات الشريعة الإسلامية. يقول الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ\". على المسلم أن يتعامل مع الناس بعدل وإنصاف.",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "10",
+    arabicWord: "الحياء",
+    transliteration: "Al-Haya",
+    meaning: "الحياء هو انقباض النفس عن التقصير وترك ما يسُوء الفاعل",
+    explanation: "الحياء خصلة من خصال الإيمان. قال رسول الله ﷺ: \"الحياء شعبة من شعب الإيمان\". والحياء يجمل صاحبه ويحفظه من الوقوع في المعاصي.",
+    category: "الأخلاق والفضائل",
+  },
+];
+
 export default function CollectionPage() {
   const params = useParams();
   const collection = params.collection as string;
   const collectionName = collectionNames[collection] || collection;
   const keywords = collectionKeywords[collection] || [collectionName];
+  const isMouhtarahat = collection === "mouhtarahat";
   
   const [allResults, setAllResults] = useState<HadithResult[]>([]);
+  const [allConcepts, setAllConcepts] = useState<IslamicConcept[]>([]);
   const [filteredResults, setFilteredResults] = useState<HadithResult[]>([]);
+  const [filteredConcepts, setFilteredConcepts] = useState<IslamicConcept[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [aiExplanation, setAiExplanation] = useState<AIExplanation | null>(null);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [selectedHadith, setSelectedHadith] = useState<HadithResult | null>(null);
+  const [selectedConcept, setSelectedConcept] = useState<IslamicConcept | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20; // Increased from 6 to 20 to show more at once
 
-  // Load hadiths from collection on mount
+  // Load hadiths or concepts from collection on mount
   useEffect(() => {
     const loadCollection = async () => {
       setLoading(true);
       try {
-        console.log(`🔄 Loading collection: ${collection}`);
+        if (isMouhtarahat) {
+          // Load Islamic concepts
+          setAllConcepts(islamicConceptsData);
+          setFilteredConcepts(islamicConceptsData);
+          console.log(`✅ Loaded ${islamicConceptsData.length} Islamic concepts`);
+        } else {
+          // Fetch hadiths for this collection directly from API with very high limit
+          console.log(`🔄 Loading collection: ${collection}`);
+          let allHadiths: HadithResult[] = [];
         
-        // Fetch hadiths for this collection directly from API with very high limit
-        let allHadiths: HadithResult[] = [];
-        
-        // First try: fetch by collection slug directly with maxed out limit
-        try {
-          const url = `/api/search?collection=${encodeURIComponent(collection)}&limit=100000`;
-          console.log(`📡 Fetching from: ${url}`);
-          const res = await fetch(url);
-          const data = await res.json();
-          console.log(`📦 Raw API response:`, data);
-          console.log(`✅ Response: ${data.results?.length || 0} hadiths`);
-          
-          if (data.results && Array.isArray(data.results)) {
-            console.log(`📝 First hadith:`, data.results[0]);
-            allHadiths.push(...data.results);
-            console.log(`📊 Loaded ${allHadiths.length} hadiths so far`);
-          } else {
-            console.error(`❌ Unexpected results format:`, typeof data.results);
+          // First try: fetch by collection slug directly with maxed out limit
+          try {
+            const url = `/api/search?collection=${encodeURIComponent(collection)}&limit=100000`;
+            console.log(`📡 Fetching from: ${url}`);
+            const res = await fetch(url);
+            const data = await res.json();
+            console.log(`📦 Raw API response:`, data);
+            console.log(`✅ Response: ${data.results?.length || 0} hadiths`);
+            
+            if (data.results && Array.isArray(data.results)) {
+              console.log(`📝 First hadith:`, data.results[0]);
+              allHadiths.push(...data.results);
+              console.log(`📊 Loaded ${allHadiths.length} hadiths so far`);
+            } else {
+              console.error(`❌ Unexpected results format:`, typeof data.results);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch collection ${collection}:`, err);
           }
-        } catch (err) {
-          console.error(`Failed to fetch collection ${collection}:`, err);
-        }
 
-        // Second try: if not enough, search by keywords with high limit
-        if (allHadiths.length < 100) {
-          console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
-          for (const keyword of keywords) {
-            try {
-              const url = `/api/search?q=${encodeURIComponent(keyword)}&limit=50000`;
-              console.log(`🔍 Searching for keyword: ${keyword}`);
-              const res = await fetch(url);
-              const data = await res.json();
-              if (data.results && data.results.length > 0) {
-                console.log(`✅ Keyword "${keyword}" returned ${data.results.length} results`);
-                allHadiths.push(...data.results);
+          // Second try: if not enough, search by keywords with high limit
+          if (allHadiths.length < 100) {
+            console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
+            for (const keyword of keywords) {
+              try {
+                const url = `/api/search?q=${encodeURIComponent(keyword)}&limit=50000`;
+                console.log(`🔍 Searching for keyword: ${keyword}`);
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.results && data.results.length > 0) {
+                  console.log(`✅ Keyword "${keyword}" returned ${data.results.length} results`);
+                  allHadiths.push(...data.results);
+                }
+              } catch (err) {
+                console.error(`Failed to fetch for keyword ${keyword}:`, err);
               }
-            } catch (err) {
-              console.error(`Failed to fetch for keyword ${keyword}:`, err);
             }
           }
+          
+          console.log(`📊 Before dedup: ${allHadiths.length} hadiths`);
+          console.log(`First few hadiths:`, allHadiths.slice(0, 3));
+          
+          // Remove duplicates
+          const uniqueHadiths = Array.from(
+            new Map(allHadiths.map(h => [h.hadithArabic, h])).values()
+          );
+          
+          console.log(`✅ After dedup: ${uniqueHadiths.length} hadiths`);
+          
+          setAllResults(uniqueHadiths);
+          setFilteredResults(uniqueHadiths);
+          console.log(`🎯 Updated state with ${uniqueHadiths.length} hadiths`);
         }
-        
-        console.log(`📊 Before dedup: ${allHadiths.length} hadiths`);
-        console.log(`First few hadiths:`, allHadiths.slice(0, 3));
-        
-        // Remove duplicates
-        const uniqueHadiths = Array.from(
-          new Map(allHadiths.map(h => [h.hadithArabic, h])).values()
-        );
-        
-        console.log(`✅ After dedup: ${uniqueHadiths.length} hadiths`);
-        
-        setAllResults(uniqueHadiths);
-        setFilteredResults(uniqueHadiths);
-        console.log(`🎯 Updated state with ${uniqueHadiths.length} hadiths`);
       } catch (err) {
         console.error("Error loading collection:", err);
         setAllResults([]);
@@ -412,23 +517,39 @@ export default function CollectionPage() {
     setSearchQuery(query);
     setCurrentPage(1);
     
-    if (!query.trim()) {
-      setFilteredResults(allResults);
+    if (isMouhtarahat) {
+      if (!query.trim()) {
+        setFilteredConcepts(allConcepts);
+      } else {
+        const filtered = allConcepts.filter(concept =>
+          concept.arabicWord.includes(query) ||
+          concept.transliteration.toLowerCase().includes(query.toLowerCase()) ||
+          concept.meaning.includes(query) ||
+          concept.explanation.includes(query) ||
+          concept.category.includes(query)
+        );
+        setFilteredConcepts(filtered);
+      }
     } else {
-      const filtered = allResults.filter(hadith =>
-        hadith.hadithArabic.includes(query) ||
-        hadith.bookName.includes(query) ||
-        hadith.chapterName.includes(query)
-      );
-      setFilteredResults(filtered);
+      if (!query.trim()) {
+        setFilteredResults(allResults);
+      } else {
+        const filtered = allResults.filter(hadith =>
+          hadith.hadithArabic.includes(query) ||
+          hadith.bookName.includes(query) ||
+          hadith.chapterName.includes(query)
+        );
+        setFilteredResults(filtered);
+      }
     }
   };
 
   // Pagination
-  const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
+  const currentFiltered = isMouhtarahat ? filteredConcepts : filteredResults;
+  const totalPages = Math.ceil(currentFiltered.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentHadiths = filteredResults.slice(startIndex, endIndex);
+  const currentHadiths = currentFiltered.slice(startIndex, endIndex);
 
   const handleExplain = async (hadithText: string) => {
     setAiLoading(true);
@@ -464,7 +585,7 @@ export default function CollectionPage() {
             {collectionName}
           </h1>
           <p className="text-text/60">
-            {filteredResults.length} أحاديث
+            {currentFiltered.length} {isMouhtarahat ? "كلمة إسلامية" : "أحاديث"}
             {searchQuery && ` (نتائج البحث عن "${searchQuery}")`}
           </p>
         </motion.div>
@@ -512,70 +633,116 @@ export default function CollectionPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-12"
+            className={`grid gap-4 mb-12 ${isMouhtarahat ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}
           >
-            {currentHadiths.map((hadith, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                onClick={() => setSelectedHadith(hadith)}
-                className="bg-white rounded-xl border border-gold/10 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all cursor-pointer group h-full flex flex-col overflow-hidden hover:translate-y-[-2px]"
-              >
-                {/* Top accent bar */}
-                <div className="h-1 bg-gradient-to-r from-gold via-gold/80 to-gold/60" />
+            {isMouhtarahat ? (
+              // Islamic Concepts Cards
+              (currentHadiths as unknown as IslamicConcept[]).map((concept, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => setSelectedConcept(concept)}
+                  className="bg-white rounded-xl border border-gold/10 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all cursor-pointer group h-full flex flex-col overflow-hidden hover:translate-y-[-2px]"
+                >
+                  {/* Top accent bar */}
+                  <div className="h-1 bg-gradient-to-r from-gold via-gold/80 to-gold/60" />
 
-                {/* Content */}
-                <div className="flex flex-col h-full p-4">
-                  {/* Collection badge */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gold/10 rounded-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/logos/logo.png" alt="Logo" width={12} height={12} className="object-contain" suppressHydrationWarning />
-                      <span className="text-gold-deep text-xs font-bold">{getCollectionArabicName(hadith.collection)}</span>
+                  {/* Content */}
+                  <div className="flex flex-col h-full p-4">
+                    {/* Arabic Word - Main display */}
+                    <div className="mb-3">
+                      <h3 className="text-2xl font-bold text-gold-deep text-center mb-2" dir="rtl">
+                        {concept.arabicWord}
+                      </h3>
+                      <p className="text-sm text-text/60 text-center font-semibold">
+                        {concept.transliteration}
+                      </p>
                     </div>
-                    <span className="text-text/30 text-xs font-medium">
-                      #{hadith.hadithNumber}
-                    </span>
-                  </div>
 
-                  {/* Hadith text - improved styling */}
-                  <div className="hadith-text text-text font-semibold leading-relaxed mb-auto text-sm line-clamp-4 group-hover:text-text/90 transition-colors" dir="rtl">
-                    {hadith.hadithArabic}
-                  </div>
+                    {/* Meaning */}
+                    <div className="meaning text-text font-medium leading-relaxed text-sm mb-auto p-3 bg-cream-light/50 rounded-lg border border-gold/5" dir="rtl">
+                      {concept.meaning}
+                    </div>
 
-                  {/* Indicators and CTA */}
-                  <div className="mt-4 pt-3 border-t border-gold/5 flex items-center justify-between gap-2">
-                    <span className="text-gold/50 text-xs flex items-center gap-1">
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10.5 1.5H5.75A2.25 2.25 0 003.5 3.75v12.5A2.25 2.25 0 005.75 18.5h8.5a2.25 2.25 0 002.25-2.25V9" />
+                    {/* Category badge and CTA */}
+                    <div className="mt-4 pt-3 border-t border-gold/5 flex items-center justify-between gap-2">
+                      <span className="text-gold/50 text-xs font-semibold px-2 py-1 bg-gold/10 rounded-full">
+                        {concept.category}
+                      </span>
+                      <svg className="w-4 h-4 text-gold/40 group-hover:text-gold group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                       </svg>
-                      اقرأ المزيد
-                    </span>
-                    <svg className="w-4 h-4 text-gold/40 group-hover:text-gold group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            ) : (
+              // Hadith Cards  
+              (currentHadiths as HadithResult[]).map((hadith, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => setSelectedHadith(hadith)}
+                  className="bg-white rounded-xl border border-gold/10 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all cursor-pointer group h-full flex flex-col overflow-hidden hover:translate-y-[-2px]"
+                >
+                  {/* Top accent bar */}
+                  <div className="h-1 bg-gradient-to-r from-gold via-gold/80 to-gold/60" />
+
+                  {/* Content */}
+                  <div className="flex flex-col h-full p-4">
+                    {/* Collection badge */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gold/10 rounded-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/logos/logo.png" alt="Logo" width={12} height={12} className="object-contain" suppressHydrationWarning />
+                        <span className="text-gold-deep text-xs font-bold">{getCollectionArabicName(hadith.collection)}</span>
+                      </div>
+                      <span className="text-text/30 text-xs font-medium">
+                        #{hadith.hadithNumber}
+                      </span>
+                    </div>
+
+                    {/* Hadith text - improved styling */}
+                    <div className="hadith-text text-text font-semibold leading-relaxed mb-auto text-sm line-clamp-4 group-hover:text-text/90 transition-colors" dir="rtl">
+                      {hadith.hadithArabic}
+                    </div>
+
+                    {/* Indicators and CTA */}
+                    <div className="mt-4 pt-3 border-t border-gold/5 flex items-center justify-between gap-2">
+                      <span className="text-gold/50 text-xs flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10.5 1.5H5.75A2.25 2.25 0 003.5 3.75v12.5A2.25 2.25 0 005.75 18.5h8.5a2.25 2.25 0 002.25-2.25V9" />
+                        </svg>
+                        اقرأ المزيد
+                      </span>
+                      <svg className="w-4 h-4 text-gold/40 group-hover:text-gold group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
           </motion.div>
         )}
 
         {/* Empty state */}
-        {!loading && filteredResults.length === 0 && (
+        {!loading && currentFiltered.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="text-center py-20 bg-white/50 rounded-3xl border border-gold/10"
           >
-            <p className="text-text/50 text-lg">لا توجد أحاديث تطابق البحث</p>
+            <p className="text-text/50 text-lg">{isMouhtarahat ? "لا توجد كلمات تطابق البحث" : "لا توجد أحاديث تطابق البحث"}</p>
           </motion.div>
         )}
 
         {/* Pagination */}
-        {!loading && filteredResults.length > 0 && totalPages > 1 && (
+        {!loading && currentFiltered.length > 0 && totalPages > 1 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -645,15 +812,16 @@ export default function CollectionPage() {
           </motion.div>
         )}
 
-        {/* Selected Hadith Modal */}
+        {/* Selected Item Modal (Hadith or Concept) */}
         <AnimatePresence>
-          {selectedHadith && (
+          {(selectedHadith || selectedConcept) && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => {
                 setSelectedHadith(null);
+                setSelectedConcept(null);
                 setAiExplanation(null);
                 setAiLoading(false);
               }}
@@ -672,6 +840,7 @@ export default function CollectionPage() {
                   <button
                     onClick={() => {
                       setSelectedHadith(null);
+                      setSelectedConcept(null);
                       setAiExplanation(null);
                       setAiLoading(false);
                     }}
@@ -683,39 +852,75 @@ export default function CollectionPage() {
 
                 {/* Scrollable content */}
                 <div className="overflow-y-auto p-8">
-                  {/* Hadith details - always visible */}
-                  <div className="mb-6">
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
-                      <div className="flex items-center gap-2 px-3 py-1 bg-gold/10 rounded-full">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src="/logos/logo.png" alt="Logo" width={16} height={16} className="object-contain" suppressHydrationWarning />
-                      <span className="text-gold-deep text-xs font-semibold">{getCollectionArabicName(selectedHadith.collection)}</span>
+                  {isMouhtarahat && selectedConcept ? (
+                    // Islamic Concept Details
+                    <div className="mb-6">
+                      {/* Concept Header */}
+                      <div className="mb-8">
+                        <h2 className="text-4xl font-bold text-gold-deep text-center mb-2" dir="rtl">
+                          {selectedConcept.arabicWord}
+                        </h2>
+                        <p className="text-lg text-text/60 text-center font-semibold mb-4">
+                          {selectedConcept.transliteration}
+                        </p>
+                        <div className="flex justify-center gap-2">
+                          <span className="px-4 py-2 bg-gold/10 text-gold-deep text-sm font-semibold rounded-full">
+                            {selectedConcept.category}
+                          </span>
+                        </div>
                       </div>
-                      {selectedHadith.grade && (
-                        <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
-                          ✓ {selectedHadith.grade}
-                        </span>
-                      )}
-                    </div>
 
-                    <div className="hadith-text text-text font-medium leading-loose mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5" dir="rtl">
-                      {selectedHadith.hadithArabic}
-                    </div>
+                      {/* Meaning */}
+                      <div className="mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5">
+                        <h3 className="text-gold-deep font-bold mb-2">المعنى</h3>
+                        <p className="text-text leading-relaxed" dir="rtl">
+                          {selectedConcept.meaning}
+                        </p>
+                      </div>
 
-                    {/* Explain button */}
-                    {!aiExplanation ? (
-                      <button
-                        onClick={() => handleExplain(selectedHadith.hadithArabic)}
-                        disabled={aiLoading}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-dark disabled:bg-navy/50 text-cream-light font-semibold rounded-xl transition-all transition-shadow hover:shadow-lg hover:shadow-navy/20 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0114 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
-                        {aiLoading ? "جاري الشرح..." : "شرح بالذكاء الاصطناعي"}
-                      </button>
-                    ) : null}
-                  </div>
+                      {/* Explanation */}
+                      <div className="p-4 bg-cream-light/30 rounded-xl border border-gold/5">
+                        <h3 className="text-gold-deep font-bold mb-2">الشرح</h3>
+                        <p className="text-text leading-relaxed" dir="rtl">
+                          {selectedConcept.explanation}
+                        </p>
+                      </div>
+                    </div>
+                  ) : selectedHadith ? (
+                    // Hadith Details
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-gold/10 rounded-full">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/logos/logo.png" alt="Logo" width={16} height={16} className="object-contain" suppressHydrationWarning />
+                        <span className="text-gold-deep text-xs font-semibold">{getCollectionArabicName(selectedHadith.collection)}</span>
+                        </div>
+                        {selectedHadith.grade && (
+                          <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 text-xs font-semibold rounded-full">
+                            ✓ {selectedHadith.grade}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="hadith-text text-text font-medium leading-loose mb-6 p-4 bg-cream-light/50 rounded-xl border border-gold/5" dir="rtl">
+                        {selectedHadith.hadithArabic}
+                      </div>
+
+                      {/* Explain button */}
+                      {!aiExplanation ? (
+                        <button
+                          onClick={() => handleExplain(selectedHadith.hadithArabic)}
+                          disabled={aiLoading}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-navy hover:bg-navy-dark disabled:bg-navy/50 text-cream-light font-semibold rounded-xl transition-all transition-shadow hover:shadow-lg hover:shadow-navy/20 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0114 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          {aiLoading ? "جاري الشرح..." : "شرح بالذكاء الاصطناعي"}
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   {/* Loading state for explanation */}
                   {aiLoading && (
