@@ -2,9 +2,12 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+# Install devDependencies in the builder so Next.js can transpile next.config.ts
+RUN npm ci
 COPY . .
 RUN npm run build
+# Remove devDependencies before copying node_modules to the runtime image
+RUN npm prune --production
 
 # --- Runner stage ---
 FROM node:20-alpine AS runner
