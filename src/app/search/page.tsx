@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiUrl } from "@/lib/api";
+import { islamicConceptsData, IslamicConcept } from "@/data/islamicConcepts";
 
 interface HadithResult {
   hadithNumber: string;
@@ -13,105 +15,12 @@ interface HadithResult {
   grade?: string;
 }
 
-interface IslamicConcept {
-  id: string;
-  arabicWord: string;
-  transliteration: string;
-  meaning: string;
-  explanation: string;
-  category: string;
-}
-
 interface AIExplanation {
   summary: string;
   explanation: string;
   keywords: string[];
   error?: string;
 }
-
-// Islamic Concepts Data
-const islamicConceptsData: IslamicConcept[] = [
-  {
-    id: "1",
-    arabicWord: "الصدقة",
-    transliteration: "Sadaqah",
-    meaning: "صدقة تعني الهبة أو العطية، وهي إنفاق المال في سبيل الله",
-    explanation: "الصدقة هي فعل الخير والعطف على الفقراء والمحتاجين. وهي من أفضل الأعمال في الإسلام، وتطهر النفس من البخل والطمع. قال تعالى: \"الصدقات للفقراء والمساكين والعاملين عليها\".",
-    category: "العبادات والأخلاق",
-  },
-  {
-    id: "2",
-    arabicWord: "الفقر",
-    transliteration: "Faqr",
-    meaning: "الفقر هو الحاجة والعوز والافتقار إلى المال والموارد",
-    explanation: "الفقر في الإسلام ليس عيبًا بل قد يكون اختبارًا من الله. قال رسول الله ﷺ: \"الفقر فخري، والفقر إلى الله فخري\". وعلينا أن نتعامل مع الفقراء برحمة وعطف.",
-    category: "الحالات الاجتماعية",
-  },
-  {
-    id: "3",
-    arabicWord: "الصبر",
-    transliteration: "Sabr",
-    meaning: "الصبر هو حبس النفس عن الجزع والشكوى عند الابتلاء",
-    explanation: "الصبر من أعظم الأخلاق في الإسلام. يقول الله تعالى: \"إِنَّمَا يُوَفَّى الصابرون أجرهم بغير حساب\". الصبر على الابتلاءات والمشاق ينال أجرًا عظيمًا من الله.",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "4",
-    arabicWord: "الرحمة",
-    transliteration: "Ar-Rahmah",
-    meaning: "الرحمة هي الرقة والعطف والرفق بالآخرين",
-    explanation: "الرحمة صفة من صفات الله تعالى، وهي مطلوبة من المسلمين تجاه بعضهم البعض. قال رسول الله ﷺ: \"الراحمون يرحمهم الرحمن، ارحموا من في الأرض يرحمكم من في السماء\".",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "5",
-    arabicWord: "التقوى",
-    transliteration: "Taqwa",
-    meaning: "التقوى هي خشية الله والخوف منه والامتثال لأوامره واجتناب نواهيه",
-    explanation: "التقوى هي أساس التدين الحقيقي. يقول الله تعالى: \"أَتَقُونَ بِاللَّهِ جُنَّةً\". المتقي هو من يراقب الله في كل أعماله وأقواله.",
-    category: "الإيمان والعقيدة",
-  },
-  {
-    id: "6",
-    arabicWord: "الإحسان",
-    transliteration: "Ihsan",
-    meaning: "الإحسان هو أداء العمل بأحسن صورة وتحسينه وإتقانه",
-    explanation: "الإحسان درجة عليا في العبادة والعمل. قال رسول الله ﷺ: \"إن الله يحب إذا عمل أحدكم عملًا أن يحسنه\". الإحسان يعني أن تعبد الله كأنك تراه أو على الأقل كأنه يراك.",
-    category: "العبادات والأخلاق",
-  },
-  {
-    id: "7",
-    arabicWord: "الدعاء",
-    transliteration: "Dua",
-    meaning: "الدعاء هو طلب العبد من الله ما يحتاجه ويرغبه",
-    explanation: "الدعاء هو العبادة كما قال رسول الله ﷺ. وهو وسيلة التواصل بين العبد وربه. والله يحب أن يدعوه عباده ويستجيب دعاءهم.",
-    category: "العبادات والأخلاق",
-  },
-  {
-    id: "8",
-    arabicWord: "الأمانة",
-    transliteration: "Al-Amanah",
-    meaning: "الأمانة هي حفظ ما يُؤتمن عليه والقيام به على أحسن وجه",
-    explanation: "الأمانة من أهم الصفات المطلوبة. قال الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُكُمْ أَن تُؤَدُّوا الْأَمَانَاتِ إِلَىٰ أَهْلِهَا\". المسلم يجب أن يكون أمينًا في كل مسؤولياته.",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "9",
-    arabicWord: "العدل",
-    transliteration: "Al-Adl",
-    meaning: "العدل هو إعطاء كل ذي حق حقه والإنصاف بين الناس",
-    explanation: "العدل من أساسيات الشريعة الإسلامية. يقول الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ\". على المسلم أن يتعامل مع الناس بعدل وإنصاف.",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "10",
-    arabicWord: "الحياء",
-    transliteration: "Al-Haya",
-    meaning: "الحياء هو انقباض النفس عن التقصير وترك ما يسُوء الفاعل",
-    explanation: "الحياء خصلة من خصال الإيمان. قال رسول الله ﷺ: \"الحياء شعبة من شعب الإيمان\". والحياء يجمل صاحبه ويحفظه من الوقوع في المعاصي.",
-    category: "الأخلاق والفضائل",
-  },
-];
 
 // Map collection API names to Arabic names
 const collectionNameMap: Record<string, string> = {
@@ -144,7 +53,7 @@ export default function SearchPage() {
   const itemsPerPage = 12; // 12 results per page for 4-column grid
 
   // Load popular hadith suggestions on user focus
-  const loadSuggestions = async () => {
+  const loadSuggestions = useCallback(async () => {
     if (suggestions.length > 0 || suggestionsLoading) return;
     
     setSuggestionsLoading(true);
@@ -154,7 +63,7 @@ export default function SearchPage() {
       
       for (const topic of populartopics) {
         try {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(topic)}&limit=300`);
+          const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(topic)}&limit=50`));
           const data = await res.json();
           if (data.results && data.results.length > 0) {
             allSuggestions.push(...data.results);
@@ -176,7 +85,7 @@ export default function SearchPage() {
     } finally {
       setSuggestionsLoading(false);
     }
-  };
+  }, [suggestions.length, suggestionsLoading]);
 
   const handleSearch = async (e: React.FormEvent, searchQuery?: string) => {
     e.preventDefault();
@@ -194,8 +103,8 @@ export default function SearchPage() {
       const isCollectionSearch = collectionNames.some(name => finalQuery.toLowerCase().includes(name.toLowerCase()));
       
       const url = isCollectionSearch 
-        ? `/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=100000`
-        : `/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=100000`;
+        ? apiUrl(`/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=500`)
+        : apiUrl(`/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=500`);
       
       console.log(`🔍 Searching: ${url}`);
       const res = await fetch(url);
@@ -228,7 +137,7 @@ export default function SearchPage() {
     setCurrentPage(1);
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=100000`);
+      const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=500`));
       const data = await res.json();
       console.log(`✅ Found ${data.results?.length || 0} hadiths for ${concept.arabicWord}`);
       setResults(data.results || []);
@@ -243,7 +152,7 @@ export default function SearchPage() {
   const handleExplain = async (hadithText: string) => {
     setAiLoading(true);
     try {
-      const res = await fetch("/api/explain", {
+      const res = await fetch(apiUrl('/api/explain'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: hadithText }),
@@ -260,6 +169,14 @@ export default function SearchPage() {
       setAiLoading(false);
     }
   };
+
+  // Memoize pagination
+  const { totalPages, currentResults } = useMemo(() => {
+    const total = Math.ceil(results.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return { totalPages: total, currentResults: results.slice(startIndex, endIndex) };
+  }, [results, currentPage, itemsPerPage]);
 
   return (
     <div className="min-h-screen bg-cream islamic-pattern">
@@ -470,14 +387,6 @@ export default function SearchPage() {
               exit={{ opacity: 0 }}
               className="space-y-6"
             >
-              {(() => {
-                const totalPages = Math.ceil(results.length / itemsPerPage);
-                const startIndex = (currentPage - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const currentResults = results.slice(startIndex, endIndex);
-
-                return (
-                  <>
                     <p className="text-text/50 text-sm mb-6">
                       تم العثور على {results.length} نتيجة
                       {totalPages > 1 && ` (الصفحة ${currentPage} من ${totalPages})`}
@@ -486,7 +395,7 @@ export default function SearchPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                       {currentResults.map((hadith, i) => (
                         <motion.div
-                          key={startIndex + i}
+                          key={`${currentPage}-${i}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: Math.min(i * 0.03, 0.3) }}
@@ -603,9 +512,6 @@ export default function SearchPage() {
                         </button>
                       </motion.div>
                     )}
-                  </>
-                );
-              })()}
             </motion.div>
           )}
         </AnimatePresence>
