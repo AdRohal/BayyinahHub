@@ -1,5 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Lightweight in-memory rate limiter (per IP, reset every 24h)
+const EXPLAIN_RATE_LIMIT = parseInt(process.env.EXPLAIN_RATE_LIMIT || "20", 10);
+const EXPLAIN_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
+const explainRateMap = new Map<string, { count: number; ts: number }>();
+
+function checkAndIncrementRate(ip: string) {
+  const now = Date.now();
+  const entry = explainRateMap.get(ip) || { count: 0, ts: now };
+  if (now - entry.ts > EXPLAIN_WINDOW_MS) {
+    entry.count = 0;
+    entry.ts = now;
+  }
+  if (entry.count >= EXPLAIN_RATE_LIMIT) return false;
+  entry.count += 1;
+  explainRateMap.set(ip, entry);
+  return true;
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
   const { text } = body;
@@ -9,6 +27,13 @@ export async function POST(request: NextRequest) {
       { error: "لم يتم تقديم نص للشرح" },
       { status: 400 }
     );
+  }
+
+  // Rate limit (per IP)
+  const ipHeader = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
+  const clientIp = ipHeader.split(",")[0].trim();
+  if (!checkAndIncrementRate(clientIp)) {
+    return NextResponse.json({ error: "تم تجاوز حد الطلبات اليومية لميزة الشرح" }, { status: 429 });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;

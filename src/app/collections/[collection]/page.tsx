@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams } from "next/navigation";
 import { islamicConceptsData, IslamicConcept } from "@/data/islamicConcepts";
+import { apiUrl } from "@/lib/api";
 
 interface HadithResult {
   hadithNumber: string;
@@ -358,7 +359,7 @@ export default function CollectionPage() {
         
           // First try: fetch by collection slug directly with maxed out limit
           try {
-            const url = `/api/search?collection=${encodeURIComponent(collection)}&limit=2000`;
+            const url = apiUrl(`/api/search?collection=${encodeURIComponent(collection)}&limit=2000`);
             console.log(`📡 Fetching from: ${url}`);
             const res = await fetch(url);
             const data = await res.json();
@@ -381,7 +382,7 @@ export default function CollectionPage() {
             console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
             for (const keyword of keywords) {
               try {
-                const url = `/api/search?q=${encodeURIComponent(keyword)}&limit=500`;
+                const url = apiUrl(`/api/search?q=${encodeURIComponent(keyword)}&limit=500`);
                 console.log(`🔍 Searching for keyword: ${keyword}`);
                 const res = await fetch(url);
                 const data = await res.json();
@@ -462,7 +463,7 @@ export default function CollectionPage() {
   const handleExplain = async (hadithText: string) => {
     setAiLoading(true);
     try {
-      const res = await fetch("/api/explain", {
+      const res = await fetch(apiUrl('/api/explain'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: hadithText }),

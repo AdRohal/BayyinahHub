@@ -7,10 +7,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Power-prefix for faster static file serving
   poweredByHeader: false,
-  // Hide dev overlay during development
-  devIndicators: {
-    buildActivity: false,
-  },
+
 };
 
 export default nextConfig;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiUrl } from "@/lib/api";
 import { islamicConceptsData, IslamicConcept } from "@/data/islamicConcepts";
 
 interface HadithResult {
@@ -62,7 +63,7 @@ export default function SearchPage() {
       
       for (const topic of populartopics) {
         try {
-          const res = await fetch(`/api/search?q=${encodeURIComponent(topic)}&limit=50`);
+          const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(topic)}&limit=50`));
           const data = await res.json();
           if (data.results && data.results.length > 0) {
             allSuggestions.push(...data.results);
@@ -102,8 +103,8 @@ export default function SearchPage() {
       const isCollectionSearch = collectionNames.some(name => finalQuery.toLowerCase().includes(name.toLowerCase()));
       
       const url = isCollectionSearch 
-        ? `/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=500`
-        : `/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=500`;
+        ? apiUrl(`/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=500`)
+        : apiUrl(`/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=500`);
       
       console.log(`🔍 Searching: ${url}`);
       const res = await fetch(url);
@@ -136,7 +137,7 @@ export default function SearchPage() {
     setCurrentPage(1);
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=500`);
+      const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=500`));
       const data = await res.json();
       console.log(`✅ Found ${data.results?.length || 0} hadiths for ${concept.arabicWord}`);
       setResults(data.results || []);
@@ -151,7 +152,7 @@ export default function SearchPage() {
   const handleExplain = async (hadithText: string) => {
     setAiLoading(true);
     try {
-      const res = await fetch("/api/explain", {
+      const res = await fetch(apiUrl('/api/explain'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: hadithText }),
