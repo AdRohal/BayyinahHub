@@ -63,9 +63,6 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             {/* Source links */}
             <div className="flex items-center gap-6" suppressHydrationWarning>
-              <a href="https://sunnah.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-100 transition-opacity" suppressHydrationWarning>
-                <img src="/logos/sunnah.png" alt="sunnah.com" className="h-7 w-auto brightness-0 invert opacity-40 hover:opacity-70 transition-opacity" suppressHydrationWarning />
-              </a>
               <a href="https://dorar.net" target="_blank" rel="noopener noreferrer" className="hover:opacity-100 transition-opacity" suppressHydrationWarning>
                 <img src="/logos/dorar.svg" alt="dorar.net" className="h-7 w-auto brightness-0 invert opacity-40 hover:opacity-70 transition-opacity" suppressHydrationWarning />
               </a>

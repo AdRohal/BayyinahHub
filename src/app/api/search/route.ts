@@ -1,8 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// ─── In-memory cache for fetched collections ───
+// Avoids re-fetching multi-MB JSON files from CDN on every request.
+// TTL = 10 minutes; safe for a single-instance Next.js server.
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+const collectionCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function getCachedCollection(key: string): any | null {
+  const entry = collectionCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+    collectionCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedCollection(key: string, data: any): void {
+  collectionCache.set(key, { data, timestamp: Date.now() });
+}
+
 // Strip Arabic diacritics (tashkeel) for text matching
 function stripDiacritics(text: string): string {
   return text.replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/g, "");
+}
+
+// Fetch a collection from CDN with caching
+async function fetchCollection(collection: string): Promise<any | null> {
+  const cached = getCachedCollection(collection);
+  if (cached) {
+    console.log(`📦 Cache hit: ${collection}`);
+    return cached;
+  }
+
+  const apiUrl = `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${collection}.json`;
+  const response = await fetch(apiUrl, {
+    headers: {
+      "Accept": "application/json",
+      "User-Agent": "BayyinahHub/1.0",
+    },
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  setCachedCollection(collection, data);
+  console.log(`📡 Fetched & cached: ${collection}`);
+  return data;
 }
 
 // Map collection names to API book names
@@ -75,7 +124,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (isTopicSearch) {
-      // Topic search - fetch from multiple collections
+      // Topic search - fetch from multiple collections in parallel
       const collectionsToSearch = [
         "ara-bukhari",
         "ara-muslim",
@@ -86,53 +135,44 @@ export async function GET(request: NextRequest) {
         "ara-ibnmajah",
       ];
 
-      for (const collection of collectionsToSearch) {
-        try {
-          console.log(`📡 Fetching ${collection}...`);
-          const apiUrl = `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${collection}.json`;
-          
-          const response = await fetch(apiUrl, {
-            headers: {
-              "Accept": "application/json",
-              "User-Agent": "BayyinahHub/1.0"
-            },
-            signal: AbortSignal.timeout(10000),
-          });
+      const searchTerm = stripDiacritics(query!);
 
-          if (response.ok) {
-            const data = await response.json();
-            
-            if (data.hadiths && Array.isArray(data.hadiths)) {
-              const searchTerm = stripDiacritics(query!);
-              const filtered = data.hadiths
-                .filter((h: any) => {
-                  const text = stripDiacritics(h.text || "");
-                  const book = stripDiacritics(h.book?.name || "");
-                  const chapter = stripDiacritics(h.chapter?.name || h.chapter || "");
-                  
-                  // Match if query appears in text, book name, or chapter
-                  return text.includes(searchTerm) || 
-                         book.includes(searchTerm) || 
-                         chapter.includes(searchTerm);
-                })
-                .map((h: any) => ({
-                  hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
-                  collection: data.collection_name || h.collection || collection,
-                  bookName: h.book?.name || h.bookName || "",
-                  chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
-                  hadithArabic: h.text || "",
-                  hadithEnglish: h.text || "",
-                  grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
-                  narrator: h.narrator || h.reporter || "",
-                  source: "fawazahmed0"
-                }));
+      const results = await Promise.allSettled(
+        collectionsToSearch.map(async (collection) => {
+          try {
+            const data = await fetchCollection(collection);
+            if (!data?.hadiths || !Array.isArray(data.hadiths)) return [];
 
-              allResults.push(...filtered);
-              console.log(`✅ ${collection}: Found ${filtered.length} hadiths`);
-            }
+            return data.hadiths
+              .filter((h: any) => {
+                const text = stripDiacritics(h.text || "");
+                const book = stripDiacritics(h.book?.name || "");
+                const chapter = stripDiacritics(h.chapter?.name || h.chapter || "");
+                return text.includes(searchTerm) ||
+                       book.includes(searchTerm) ||
+                       chapter.includes(searchTerm);
+              })
+              .map((h: any) => ({
+                hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
+                collection: data.collection_name || h.collection || collection,
+                bookName: h.book?.name || h.bookName || "",
+                chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
+                hadithArabic: h.text || "",
+                hadithEnglish: h.text || "",
+                grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
+                narrator: h.narrator || h.reporter || "",
+                source: "fawazahmed0"
+              }));
+          } catch (e) {
+            console.warn(`⚠️  Failed to fetch ${collection}:`, e);
+            return [];
           }
-        } catch (e) {
-          console.warn(`⚠️  Failed to fetch ${collection}:`, e);
+        })
+      );
+
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          allResults.push(...result.value);
         }
       }
     } else {
@@ -141,32 +181,18 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ results: [] });
       }
 
-      // Fetch entire collection from Fawazahmed0 API
-      console.log(`📡 Fetching from Fawazahmed0 Hadith API...`);
-      const apiUrl = `https://cdn.jsdelivr.net/gh/fawazahmed0/hadith-api@1/editions/${bookName}.json`;
-      
-      const response = await fetch(apiUrl, {
-        headers: {
-          "Accept": "application/json",
-          "User-Agent": "BayyinahHub/1.0"
-        },
-        signal: AbortSignal.timeout(30000),
-      });
+      const data = await fetchCollection(bookName);
 
-      if (!response.ok) {
-        console.error(`❌ API error: ${response.status}`);
-        return NextResponse.json({ 
+      if (!data) {
+        return NextResponse.json({
           results: [],
-          error: `Failed to fetch from API: ${response.status}`
+          error: `Failed to fetch from API`
         });
       }
 
-      const data = await response.json();
-      
-      // Parse the collection data
       if (data.hadiths && Array.isArray(data.hadiths)) {
         console.log(`📥 Received ${data.hadiths.length} hadiths from collection`);
-        
+
         allResults = data.hadiths.map((h: any) => ({
           hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
           collection: data.collection_name || h.collection || bookName,
@@ -181,7 +207,6 @@ export async function GET(request: NextRequest) {
 
         console.log(`✅ Parsed ${allResults.length} valid hadiths`);
       } else {
-        console.error(`❌ Unexpected response format:`, Object.keys(data).slice(0, 5));
         return NextResponse.json({
           results: [],
           error: "Unexpected API response format"
@@ -220,6 +245,10 @@ export async function GET(request: NextRequest) {
     results: uniqueResults.slice(0, limit),
     total: uniqueResults.length,
     source: "fawazahmed0-hadith-api"
+  }, {
+    headers: {
+      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+    },
   });
 }
 

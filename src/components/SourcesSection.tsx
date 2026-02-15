@@ -4,14 +4,6 @@ import { motion } from "framer-motion";
 
 const sources = [
   {
-    name: "sunnah.com",
-    description: "موقع متخصص في جمع الأحاديث الصحيحة من مختلف المراجع الإسلامية",
-    logo: "/logos/sunnah.png",
-    width: 140,
-    height: 36,
-    url: "https://sunnah.com",
-  },
-  {
     name: "dorar.net",
     description: "منصة علمية موثوقة لنشر الأحاديث والعلوم الإسلامية",
     logo: "/logos/dorar.svg",
@@ -62,7 +54,7 @@ export default function SourcesSection() {
             </div>
 
             {/* Source cards in grid */}
-            <div className="grid md:grid-cols-4 gap-6 mt-8">
+            <div className="grid md:grid-cols-3 gap-6 mt-8">
               {sources.map((source, i) => (
                 <motion.a
                   key={i}

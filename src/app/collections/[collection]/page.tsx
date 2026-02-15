@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams } from "next/navigation";
+import { islamicConceptsData, IslamicConcept } from "@/data/islamicConcepts";
 
 interface HadithResult {
   hadithNumber: string;
@@ -12,15 +13,6 @@ interface HadithResult {
   hadithArabic: string;
   hadithEnglish?: string;
   grade?: string;
-}
-
-interface IslamicConcept {
-  id: string;
-  arabicWord: string;
-  transliteration: string;
-  meaning: string;
-  explanation: string;
-  category: string;
 }
 
 interface AIExplanation {
@@ -329,95 +321,11 @@ const hadithDataByCollection: Record<string, HadithResult[]> = {
   ],
 };
 
-// Islamic Concepts Data
-const islamicConceptsData: IslamicConcept[] = [
-  {
-    id: "1",
-    arabicWord: "الصدقة",
-    transliteration: "Sadaqah",
-    meaning: "صدقة تعني الهبة أو العطية، وهي إنفاق المال في سبيل الله",
-    explanation: "الصدقة هي فعل الخير والعطف على الفقراء والمحتاجين. وهي من أفضل الأعمال في الإسلام، وتطهر النفس من البخل والطمع. قال تعالى: \"الصدقات للفقراء والمساكين والعاملين عليها\".",
-    category: "العبادات والأخلاق",
-  },
-  {
-    id: "2",
-    arabicWord: "الفقر",
-    transliteration: "Faqr",
-    meaning: "الفقر هو الحاجة والعوز والافتقار إلى المال والموارد",
-    explanation: "الفقر في الإسلام ليس عيبًا بل قد يكون اختبارًا من الله. قال رسول الله ﷺ: \"الفقر فخري، والفقر إلى الله فخري\". وعلينا أن نتعامل مع الفقراء برحمة وعطف.",
-    category: "الحالات الاجتماعية",
-  },
-  {
-    id: "3",
-    arabicWord: "الصبر",
-    transliteration: "Sabr",
-    meaning: "الصبر هو حبس النفس عن الجزع والشكوى عند الابتلاء",
-    explanation: "الصبر من أعظم الأخلاق في الإسلام. يقول الله تعالى: \"إِنَّمَا يُوَفَّى الصابرون أجرهم بغير حساب\". الصبر على الابتلاءات والمشاق ينال أجرًا عظيمًا من الله.",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "4",
-    arabicWord: "الرحمة",
-    transliteration: "Ar-Rahmah",
-    meaning: "الرحمة هي الرقة والعطف والرفق بالآخرين",
-    explanation: "الرحمة صفة من صفات الله تعالى، وهي مطلوبة من المسلمين تجاه بعضهم البعض. قال رسول الله ﷺ: \"الراحمون يرحمهم الرحمن، ارحموا من في الأرض يرحمكم من في السماء\".",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "5",
-    arabicWord: "التقوى",
-    transliteration: "Taqwa",
-    meaning: "التقوى هي خشية الله والخوف منه والامتثال لأوامره واجتناب نواهيه",
-    explanation: "التقوى هي أساس التدين الحقيقي. يقول الله تعالى: \"أَتَقُونَ بِاللَّهِ جُنَّةً\". المتقي هو من يراقب الله في كل أعماله وأقواله.",
-    category: "الإيمان والعقيدة",
-  },
-  {
-    id: "6",
-    arabicWord: "الإحسان",
-    transliteration: "Ihsan",
-    meaning: "الإحسان هو أداء العمل بأحسن صورة وتحسينه وإتقانه",
-    explanation: "الإحسان درجة عليا في العبادة والعمل. قال رسول الله ﷺ: \"إن الله يحب إذا عمل أحدكم عملًا أن يحسنه\". الإحسان يعني أن تعبد الله كأنك تراه أو على الأقل كأنه يراك.",
-    category: "العبادات والأخلاق",
-  },
-  {
-    id: "7",
-    arabicWord: "الدعاء",
-    transliteration: "Dua",
-    meaning: "الدعاء هو طلب العبد من الله ما يحتاجه ويرغبه",
-    explanation: "الدعاء هو العبادة كما قال رسول الله ﷺ. وهو وسيلة التواصل بين العبد وربه. والله يحب أن يدعوه عباده ويستجيب دعاءهم.",
-    category: "العبادات والأخلاق",
-  },
-  {
-    id: "8",
-    arabicWord: "الأمانة",
-    transliteration: "Al-Amanah",
-    meaning: "الأمانة هي حفظ ما يُؤتمن عليه والقيام به على أحسن وجه",
-    explanation: "الأمانة من أهم الصفات المطلوبة. قال الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُكُمْ أَن تُؤَدُّوا الْأَمَانَاتِ إِلَىٰ أَهْلِهَا\". المسلم يجب أن يكون أمينًا في كل مسؤولياته.",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "9",
-    arabicWord: "العدل",
-    transliteration: "Al-Adl",
-    meaning: "العدل هو إعطاء كل ذي حق حقه والإنصاف بين الناس",
-    explanation: "العدل من أساسيات الشريعة الإسلامية. يقول الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ\". على المسلم أن يتعامل مع الناس بعدل وإنصاف.",
-    category: "الأخلاق والفضائل",
-  },
-  {
-    id: "10",
-    arabicWord: "الحياء",
-    transliteration: "Al-Haya",
-    meaning: "الحياء هو انقباض النفس عن التقصير وترك ما يسُوء الفاعل",
-    explanation: "الحياء خصلة من خصال الإيمان. قال رسول الله ﷺ: \"الحياء شعبة من شعب الإيمان\". والحياء يجمل صاحبه ويحفظه من الوقوع في المعاصي.",
-    category: "الأخلاق والفضائل",
-  },
-];
-
 export default function CollectionPage() {
   const params = useParams();
   const collection = params.collection as string;
   const collectionName = collectionNames[collection] || collection;
-  const keywords = collectionKeywords[collection] || [collectionName];
+  const keywords = useMemo(() => collectionKeywords[collection] || [collectionName], [collection, collectionName]);
   const isMouhtarahat = collection === "mouhtarahat";
   
   const [allResults, setAllResults] = useState<HadithResult[]>([]);
@@ -450,7 +358,7 @@ export default function CollectionPage() {
         
           // First try: fetch by collection slug directly with maxed out limit
           try {
-            const url = `/api/search?collection=${encodeURIComponent(collection)}&limit=100000`;
+            const url = `/api/search?collection=${encodeURIComponent(collection)}&limit=2000`;
             console.log(`📡 Fetching from: ${url}`);
             const res = await fetch(url);
             const data = await res.json();
@@ -473,7 +381,7 @@ export default function CollectionPage() {
             console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
             for (const keyword of keywords) {
               try {
-                const url = `/api/search?q=${encodeURIComponent(keyword)}&limit=50000`;
+                const url = `/api/search?q=${encodeURIComponent(keyword)}&limit=500`;
                 console.log(`🔍 Searching for keyword: ${keyword}`);
                 const res = await fetch(url);
                 const data = await res.json();
@@ -642,7 +550,7 @@ export default function CollectionPage() {
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
                   onClick={() => setSelectedConcept(concept)}
                   className="bg-white rounded-xl border border-gold/10 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all cursor-pointer group h-full flex flex-col overflow-hidden hover:translate-y-[-2px]"
                 >
@@ -685,7 +593,7 @@ export default function CollectionPage() {
                   key={i}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3) }}
                   onClick={() => setSelectedHadith(hadith)}
                   className="bg-white rounded-xl border border-gold/10 shadow-sm hover:shadow-xl hover:border-gold/30 transition-all cursor-pointer group h-full flex flex-col overflow-hidden hover:translate-y-[-2px]"
                 >
