@@ -15,6 +15,9 @@ export const metadata: Metadata = {
   title: "مركز البيّنة | Bayyinah Hub",
   description:
     "فهم السنة بوضوح وذكاء - منصة عربية تعتمد على مصادر السنة الصحيحة مع تنظيم وشرح مدعوم بالذكاء الاصطناعي",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
