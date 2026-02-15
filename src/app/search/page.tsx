@@ -13,12 +13,105 @@ interface HadithResult {
   grade?: string;
 }
 
+interface IslamicConcept {
+  id: string;
+  arabicWord: string;
+  transliteration: string;
+  meaning: string;
+  explanation: string;
+  category: string;
+}
+
 interface AIExplanation {
   summary: string;
   explanation: string;
   keywords: string[];
   error?: string;
 }
+
+// Islamic Concepts Data
+const islamicConceptsData: IslamicConcept[] = [
+  {
+    id: "1",
+    arabicWord: "الصدقة",
+    transliteration: "Sadaqah",
+    meaning: "صدقة تعني الهبة أو العطية، وهي إنفاق المال في سبيل الله",
+    explanation: "الصدقة هي فعل الخير والعطف على الفقراء والمحتاجين. وهي من أفضل الأعمال في الإسلام، وتطهر النفس من البخل والطمع. قال تعالى: \"الصدقات للفقراء والمساكين والعاملين عليها\".",
+    category: "العبادات والأخلاق",
+  },
+  {
+    id: "2",
+    arabicWord: "الفقر",
+    transliteration: "Faqr",
+    meaning: "الفقر هو الحاجة والعوز والافتقار إلى المال والموارد",
+    explanation: "الفقر في الإسلام ليس عيبًا بل قد يكون اختبارًا من الله. قال رسول الله ﷺ: \"الفقر فخري، والفقر إلى الله فخري\". وعلينا أن نتعامل مع الفقراء برحمة وعطف.",
+    category: "الحالات الاجتماعية",
+  },
+  {
+    id: "3",
+    arabicWord: "الصبر",
+    transliteration: "Sabr",
+    meaning: "الصبر هو حبس النفس عن الجزع والشكوى عند الابتلاء",
+    explanation: "الصبر من أعظم الأخلاق في الإسلام. يقول الله تعالى: \"إِنَّمَا يُوَفَّى الصابرون أجرهم بغير حساب\". الصبر على الابتلاءات والمشاق ينال أجرًا عظيمًا من الله.",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "4",
+    arabicWord: "الرحمة",
+    transliteration: "Ar-Rahmah",
+    meaning: "الرحمة هي الرقة والعطف والرفق بالآخرين",
+    explanation: "الرحمة صفة من صفات الله تعالى، وهي مطلوبة من المسلمين تجاه بعضهم البعض. قال رسول الله ﷺ: \"الراحمون يرحمهم الرحمن، ارحموا من في الأرض يرحمكم من في السماء\".",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "5",
+    arabicWord: "التقوى",
+    transliteration: "Taqwa",
+    meaning: "التقوى هي خشية الله والخوف منه والامتثال لأوامره واجتناب نواهيه",
+    explanation: "التقوى هي أساس التدين الحقيقي. يقول الله تعالى: \"أَتَقُونَ بِاللَّهِ جُنَّةً\". المتقي هو من يراقب الله في كل أعماله وأقواله.",
+    category: "الإيمان والعقيدة",
+  },
+  {
+    id: "6",
+    arabicWord: "الإحسان",
+    transliteration: "Ihsan",
+    meaning: "الإحسان هو أداء العمل بأحسن صورة وتحسينه وإتقانه",
+    explanation: "الإحسان درجة عليا في العبادة والعمل. قال رسول الله ﷺ: \"إن الله يحب إذا عمل أحدكم عملًا أن يحسنه\". الإحسان يعني أن تعبد الله كأنك تراه أو على الأقل كأنه يراك.",
+    category: "العبادات والأخلاق",
+  },
+  {
+    id: "7",
+    arabicWord: "الدعاء",
+    transliteration: "Dua",
+    meaning: "الدعاء هو طلب العبد من الله ما يحتاجه ويرغبه",
+    explanation: "الدعاء هو العبادة كما قال رسول الله ﷺ. وهو وسيلة التواصل بين العبد وربه. والله يحب أن يدعوه عباده ويستجيب دعاءهم.",
+    category: "العبادات والأخلاق",
+  },
+  {
+    id: "8",
+    arabicWord: "الأمانة",
+    transliteration: "Al-Amanah",
+    meaning: "الأمانة هي حفظ ما يُؤتمن عليه والقيام به على أحسن وجه",
+    explanation: "الأمانة من أهم الصفات المطلوبة. قال الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُكُمْ أَن تُؤَدُّوا الْأَمَانَاتِ إِلَىٰ أَهْلِهَا\". المسلم يجب أن يكون أمينًا في كل مسؤولياته.",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "9",
+    arabicWord: "العدل",
+    transliteration: "Al-Adl",
+    meaning: "العدل هو إعطاء كل ذي حق حقه والإنصاف بين الناس",
+    explanation: "العدل من أساسيات الشريعة الإسلامية. يقول الله تعالى: \"إِنَّ اللَّهَ يَأْمُرُ بِالْعَدْلِ وَالْإِحْسَانِ\". على المسلم أن يتعامل مع الناس بعدل وإنصاف.",
+    category: "الأخلاق والفضائل",
+  },
+  {
+    id: "10",
+    arabicWord: "الحياء",
+    transliteration: "Al-Haya",
+    meaning: "الحياء هو انقباض النفس عن التقصير وترك ما يسُوء الفاعل",
+    explanation: "الحياء خصلة من خصال الإيمان. قال رسول الله ﷺ: \"الحياء شعبة من شعب الإيمان\". والحياء يجمل صاحبه ويحفظه من الوقوع في المعاصي.",
+    category: "الأخلاق والفضائل",
+  },
+];
 
 // Map collection API names to Arabic names
 const collectionNameMap: Record<string, string> = {
@@ -125,6 +218,28 @@ export default function SearchPage() {
     setAiExplanation(null);
   };
 
+  const handleConceptClick = async (concept: IslamicConcept) => {
+    // Search for hadiths related to this concept
+    setQuery(concept.arabicWord);
+    setLoading(true);
+    setSearched(true);
+    setShowSuggestions(false);
+    setAiExplanation(null);
+    setCurrentPage(1);
+
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=100000`);
+      const data = await res.json();
+      console.log(`✅ Found ${data.results?.length || 0} hadiths for ${concept.arabicWord}`);
+      setResults(data.results || []);
+    } catch (err) {
+      console.error("Error searching for concept:", err);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleExplain = async (hadithText: string) => {
     setAiLoading(true);
     try {
@@ -226,7 +341,7 @@ export default function SearchPage() {
                   </div>
                 ) : suggestions.length > 0 ? (
                   <div className="p-4 space-y-2">
-                    <p className="text-text/50 text-xs font-semibold px-2 py-1">أحاديث مقترحة</p>
+                    <p className="text-text/50 text-xs font-semibold px-2 py-1">أحاديث شهيرة</p>
                     {suggestions.map((hadith, i) => (
                       <motion.button
                         key={i}
@@ -247,15 +362,68 @@ export default function SearchPage() {
                       </motion.button>
                     ))}
                   </div>
-                ) : (
-                  <div className="p-6 text-center">
-                    <p className="text-text/50 text-sm">لم تتم تحميل المقترحات</p>
-                  </div>
-                )}
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
         </motion.form>
+
+        {/* Islamic Concepts Section */}
+        {!searched && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-12"
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <h2 className="text-xl font-bold text-text">الكلمات الإسلامية</h2>
+              <span className="text-gold text-sm">({islamicConceptsData.length} كلمة)</span>
+            </div>
+
+            {/* Concepts Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              {islamicConceptsData.map((concept, i) => (
+                <motion.button
+                  key={concept.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.03 }}
+                  onClick={() => handleConceptClick(concept)}
+                  className="group relative bg-gradient-to-br from-white to-cream-light/50 rounded-lg border border-gold/20 hover:border-gold/60 shadow-sm hover:shadow-md p-4 transition-all duration-200 text-right"
+                >
+                  {/* Background accent */}
+                  <div className="absolute top-0 right-0 w-1 h-full bg-gold rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                  {/* Arabic Word */}
+                  <h3 className="text-lg font-bold text-gold-deep mb-1" dir="rtl">
+                    {concept.arabicWord}
+                  </h3>
+
+                  {/* Transliteration */}
+                  <p className="text-xs text-text/60 font-semibold mb-2">
+                    {concept.transliteration}
+                  </p>
+
+                  {/* Meaning - truncated */}
+                  <p className="text-xs text-text/70 leading-snug line-clamp-2" dir="rtl">
+                    {concept.meaning}
+                  </p>
+
+                  {/* Click indicator */}
+                  <div className="mt-3 pt-2 border-t border-gold/10 flex items-center justify-between">
+                    <span className="text-gold/50 text-xs font-semibold group-hover:text-gold transition-colors">
+                      اضغط هنا
+                    </span>
+                    <svg className="w-3.5 h-3.5 text-gold/40 group-hover:text-gold group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Loading Overlay */}
         <AnimatePresence>
@@ -490,11 +658,7 @@ export default function SearchPage() {
                     </div>
                   </motion.button>
                 ))
-              ) : (
-                <div className="col-span-3 text-center py-12">
-                  <p className="text-text/40 text-sm">لا توجد أحاديث مقترحة حالياً</p>
-                </div>
-              )}
+              ) : null}
             </div>
           </motion.div>
         )}
