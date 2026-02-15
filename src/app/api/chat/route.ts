@@ -97,7 +97,6 @@ ${hadithText}`,
     });
 
     if (!response.ok) {
-      console.error(`OpenAI API error: ${response.status}`);
       return NextResponse.json(
         { error: `خطأ من OpenAI API: ${response.status}` },
         { status: response.status }
@@ -112,7 +111,6 @@ ${hadithText}`,
       success: true,
     });
   } catch (error) {
-    console.error("Error calling OpenAI API:", error);
     return NextResponse.json(
       { error: "خطأ في جلب الإجابة من API" },
       { status: 500 }

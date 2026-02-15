@@ -33,7 +33,6 @@ function stripDiacritics(text: string): string {
 async function fetchCollection(collection: string): Promise<any | null> {
   const cached = getCachedCollection(collection);
   if (cached) {
-    console.log(`📦 Cache hit: ${collection}`);
     return cached;
   }
 
@@ -50,7 +49,6 @@ async function fetchCollection(collection: string): Promise<any | null> {
 
   const data = await response.json();
   setCachedCollection(collection, data);
-  console.log(`📡 Fetched & cached: ${collection}`);
   return data;
 }
 
@@ -104,21 +102,18 @@ export async function GET(request: NextRequest) {
     // Determine which collection to fetch
     if (collectionParam) {
       bookName = collectionMap[collectionParam.toLowerCase()] || collectionParam;
-      console.log(`📚 Collection request: ${collectionParam} → ${bookName}`);
     } else if (query) {
       // Try to match query to a collection
       const normalized = query.toLowerCase();
       for (const [key, value] of Object.entries(collectionMap)) {
         if (normalized.includes(key.replace(/_/g, " ")) || normalized.includes(key)) {
           bookName = value;
-          console.log(`📚 Detected collection from query: ${key} → ${bookName}`);
           break;
         }
       }
       
       if (!bookName) {
         // Treat as topic/text search - fetch multiple collections
-        console.log(`🔍 Topic search: "${query}" - fetching from major collections`);
         isTopicSearch = true;
       }
     }
@@ -164,7 +159,6 @@ export async function GET(request: NextRequest) {
                 source: "fawazahmed0"
               }));
           } catch (e) {
-            console.warn(`⚠️  Failed to fetch ${collection}:`, e);
             return [];
           }
         })
@@ -191,7 +185,7 @@ export async function GET(request: NextRequest) {
       }
 
       if (data.hadiths && Array.isArray(data.hadiths)) {
-        console.log(`📥 Received ${data.hadiths.length} hadiths from collection`);
+
 
         allResults = data.hadiths.map((h: any) => ({
           hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
@@ -204,8 +198,6 @@ export async function GET(request: NextRequest) {
           narrator: h.narrator || h.reporter || "",
           source: "fawazahmed0"
         })).filter((h: any) => h.hadithArabic && h.hadithArabic.trim().length > 10);
-
-        console.log(`✅ Parsed ${allResults.length} valid hadiths`);
       } else {
         return NextResponse.json({
           results: [],
@@ -215,7 +207,6 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error("❌ Error fetching from Fawazahmed0 API:", error);
     return NextResponse.json({ 
       results: [],
       error: "Failed to fetch hadiths",
@@ -236,10 +227,7 @@ export async function GET(request: NextRequest) {
   });
 
   const returning = Math.min(uniqueResults.length, limit);
-  console.log(`\n📊 === RESULTS ===`);
-  console.log(`📥 Total fetched: ${allResults.length}`);
-  console.log(`🔄 After dedup: ${uniqueResults.length} unique`);
-  console.log(`✂️  Returning: ${returning} (limited to ${limit})\n`);
+
 
   return NextResponse.json({ 
     results: uniqueResults.slice(0, limit),

@@ -71,7 +71,7 @@ export default function SearchPage() {
             allSuggestions.push(...data.results);
           }
         } catch (err) {
-          console.error(`Failed to fetch topic ${topic}:`, err);
+          // Silently handle error
         }
         if (allSuggestions.length >= 6) break;
       }
@@ -82,7 +82,6 @@ export default function SearchPage() {
       
       setSuggestions(uniqueSuggestions.slice(0, 6));
     } catch (err) {
-      console.error("Error loading suggestions:", err);
       setSuggestions([]);
     } finally {
       setSuggestionsLoading(false);
@@ -107,14 +106,10 @@ export default function SearchPage() {
       const url = isCollectionSearch 
         ? apiUrl(`/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=500`)
         : apiUrl(`/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=500`);
-      
-      console.log(`🔍 Searching: ${url}`);
       const res = await fetch(url);
       const data = await res.json();
-      console.log(`✅ Found ${data.results?.length || 0} results`);
       setResults(data.results || []);
     } catch (err) {
-      console.error("Error during search:", err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -141,10 +136,8 @@ export default function SearchPage() {
     try {
       const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=500`));
       const data = await res.json();
-      console.log(`✅ Found ${data.results?.length || 0} hadiths for ${concept.arabicWord}`);
       setResults(data.results || []);
     } catch (err) {
-      console.error("Error searching for concept:", err);
       setResults([]);
     } finally {
       setLoading(false);

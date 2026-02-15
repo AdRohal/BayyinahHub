@@ -53,7 +53,6 @@ export default function ChatInterface({ hadithText, onClose }: ChatInterfaceProp
       setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
     } catch (err) {
       setError("خطأ في الاتصال بالخادم");
-      console.error("Error:", err);
     } finally {
       setLoading(false);
     }

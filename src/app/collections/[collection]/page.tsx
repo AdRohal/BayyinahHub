@@ -353,67 +353,48 @@ export default function CollectionPage() {
           // Load Islamic concepts
           setAllConcepts(islamicConceptsData);
           setFilteredConcepts(islamicConceptsData);
-          console.log(`✅ Loaded ${islamicConceptsData.length} Islamic concepts`);
         } else {
           // Fetch hadiths for this collection directly from API with very high limit
-          console.log(`🔄 Loading collection: ${collection}`);
           let allHadiths: HadithResult[] = [];
         
           // First try: fetch by collection slug directly with maxed out limit
           try {
             const url = apiUrl(`/api/search?collection=${encodeURIComponent(collection)}&limit=2000`);
-            console.log(`📡 Fetching from: ${url}`);
             const res = await fetch(url);
             const data = await res.json();
-            console.log(`📦 Raw API response:`, data);
-            console.log(`✅ Response: ${data.results?.length || 0} hadiths`);
             
             if (data.results && Array.isArray(data.results)) {
-              console.log(`📝 First hadith:`, data.results[0]);
               allHadiths.push(...data.results);
-              console.log(`📊 Loaded ${allHadiths.length} hadiths so far`);
-            } else {
-              console.error(`❌ Unexpected results format:`, typeof data.results);
             }
           } catch (err) {
-            console.error(`Failed to fetch collection ${collection}:`, err);
+            // Silently handle error
           }
 
           // Second try: if not enough, search by keywords with high limit
           if (allHadiths.length < 100) {
-            console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
             for (const keyword of keywords) {
               try {
                 const url = apiUrl(`/api/search?q=${encodeURIComponent(keyword)}&limit=500`);
-                console.log(`🔍 Searching for keyword: ${keyword}`);
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.results && data.results.length > 0) {
-                  console.log(`✅ Keyword "${keyword}" returned ${data.results.length} results`);
                   allHadiths.push(...data.results);
                 }
               } catch (err) {
-                console.error(`Failed to fetch for keyword ${keyword}:`, err);
+                // Silently handle error
               }
             }
           }
-          
-          console.log(`📊 Before dedup: ${allHadiths.length} hadiths`);
-          console.log(`First few hadiths:`, allHadiths.slice(0, 3));
           
           // Remove duplicates
           const uniqueHadiths = Array.from(
             new Map(allHadiths.map(h => [h.hadithArabic, h])).values()
           );
           
-          console.log(`✅ After dedup: ${uniqueHadiths.length} hadiths`);
-          
           setAllResults(uniqueHadiths);
           setFilteredResults(uniqueHadiths);
-          console.log(`🎯 Updated state with ${uniqueHadiths.length} hadiths`);
         }
       } catch (err) {
-        console.error("Error loading collection:", err);
         setAllResults([]);
         setFilteredResults([]);
       } finally {
