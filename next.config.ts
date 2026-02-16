@@ -7,13 +7,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Power-prefix for faster static file serving
   poweredByHeader: false,
-  // Disable debug logging
-  logging: {
-    fetches: {
-      full: false,
-      level: "error",
-    },
-  },
   // Disable HMR console messages
   experimental: {
     optimizePackageImports: ["@vercel/analytics"],
