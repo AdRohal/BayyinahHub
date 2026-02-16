@@ -5,6 +5,11 @@ const CHAT_RATE_LIMIT = parseInt(process.env.CHAT_RATE_LIMIT || "50", 10);
 const CHAT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 const chatRateMap = new Map<string, { count: number; ts: number }>();
 
+// Off-topic tracking per session
+const offTopicTracking = new Map<string, { count: number; ts: number }>();
+const OFF_TOPIC_THRESHOLD = 3; // Close chat after 3 off-topic messages
+const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+
 function checkAndIncrementRate(ip: string) {
   const now = Date.now();
   const entry = chatRateMap.get(ip) || { count: 0, ts: now };
@@ -18,9 +23,104 @@ function checkAndIncrementRate(ip: string) {
   return true;
 }
 
+function trackOffTopic(sessionId: string): { shouldClose: boolean; count: number } {
+  const now = Date.now();
+  const existing = offTopicTracking.get(sessionId);
+  
+  if (existing && now - existing.ts > SESSION_TIMEOUT) {
+    offTopicTracking.delete(sessionId);
+  }
+  
+  const entry = offTopicTracking.get(sessionId) || { count: 0, ts: now };
+  entry.count += 1;
+  entry.ts = now;
+  offTopicTracking.set(sessionId, entry);
+  
+  return {
+    count: entry.count,
+    shouldClose: entry.count >= OFF_TOPIC_THRESHOLD,
+  };
+}
+
+// Detect if question is relevant to the hadith using keywords and semantic analysis
+function isQuestionRelevant(question: string, hadithText: string): boolean {
+  const questionLower = question.toLowerCase().trim();
+  const hadithLower = hadithText.toLowerCase();
+  
+  // Block ONLY obvious off-topic patterns and clear spam
+  const blockedPatterns = [
+    /^(\d+\s*[\+\-\*\/]\s*\d+)$/i,  // Math equations ONLY (2+2=, not "explain 2 concepts")
+    /^tell\s+(me\s+)?a\s+joke/i,
+    /^(weather|temperature|climate)/i,
+    /^(football|soccer|sports match|game result)/i,
+    /^(recipe|cooking|food|restaurant|drink)/i,
+    /^(movie|film|actor|actress|hollywood|cinema)/i,
+    /^(password|login|hack|malware|virus)/i,
+    /^(love (you|me)|marry|girlfriend|boyfriend|dating)/i,
+    /^(random|blah|yapping|nonsense|stupid)/i,
+    /^(hello|hi|how are you|good morning|good night)$/i,
+  ];
+  
+  // Check against blocked patterns
+  for (const pattern of blockedPatterns) {
+    if (pattern.test(questionLower)) {
+      return false;
+    }
+  }
+  
+  // ALLOWED: Questions asking to explain, clarify, or understand more
+  const allowedTerms = [
+    "اشرح", "شرح", "وضح", "بين", "أوضح", "اشرح لي", "شرح أكثر", "اشرح أكثر",
+    "فسر", "تفسير", "معنى", "ما معنى", "كيف", "لماذا", "هل", "ما", "من", "أين",
+    "explain", "clarify", "understand", "more", "please", "tell us", "elaborate",
+    "عليك", "يمكنك", "هل يمكنك", "فضلاً", "أكثر", "قليلا"
+  ];
+  
+  const hasAllowedTerm = allowedTerms.some(term => questionLower.includes(term));
+  
+  if (hasAllowedTerm) {
+    return true;
+  }
+  
+  // Extract key content words from hadith
+  const hadithKeywords = [
+    "حديث", "نبي", "رسول", "سنة", "إسلام", "دين", "شريف", "معنى", "تفسير"
+  ];
+  
+  const hasHadithContext = hadithKeywords.some(keyword => hadithLower.includes(keyword));
+  
+  // If it's an Arabic hadith, be more lenient with questions
+  if (hasHadithContext) {
+    // Check if question has words from hadith
+    const hadithWords = hadithLower
+      .split(/[\s\-()،\.]+/)
+      .filter(w => w.length > 2 && !['في', 'من', 'عن', 'إن', 'هو', 'هي', 'هم', 'و', 'ل', 'ال', 'أن', 'إلى'].includes(w));
+    
+    const questionWords = questionLower
+      .split(/[\s\-()،\.]+/)
+      .filter(w => w.length > 2);
+    
+    const matchingWords = questionWords.filter(qw =>
+      hadithWords.some(hw => hw === qw || hw.includes(qw) || qw.includes(hw))
+    );
+    
+    // Need at least 1 matching word
+    if (matchingWords.length >= 1) {
+      return true;
+    }
+    
+    // If question is reasonably long (3+ words), it's probably about the hadith
+    if (questionWords.length >= 3) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { hadithText, userQuestion, conversationHistory } = body;
+  const { hadithText, userQuestion, conversationHistory, sessionId } = body;
 
   if (!hadithText || !userQuestion) {
     return NextResponse.json(
@@ -34,6 +134,27 @@ export async function POST(request: NextRequest) {
   const clientIp = ipHeader.split(",")[0].trim();
   if (!checkAndIncrementRate(clientIp)) {
     return NextResponse.json({ error: "تم تجاوز حد الطلبات اليومية للدردشة" }, { status: 429 });
+  }
+
+  // Check if question is relevant to the hadith
+  const isRelevant = isQuestionRelevant(userQuestion, hadithText);
+  
+  if (!isRelevant) {
+    const trackingResult = trackOffTopic(sessionId || clientIp);
+    
+    if (trackingResult.shouldClose) {
+      return NextResponse.json({
+        success: false,
+        shouldCloseChat: true,
+        error: "تم إغلاق الدردشة بسبب تكرار الأسئلة غير ذات الصلة. يرجى احترام قواعد الحوار والاقتصار على أسئلة الحديث الشريف فقط.",
+      }, { status: 400 });
+    }
+    
+    return NextResponse.json({
+      success: false,
+      isOffTopic: true,
+      answer: `الرجاء طرح أسئلة ذات صلة بالحديث الشريف فقط 🤲\n\nهذا حوار مخصص لشرح ومناقشة الحديث المعروض. يرجى احترام قواعد الحوار وعدم الخروج عن الموضوع.\n\n${trackingResult.count > 1 ? `⚠️ تنبيه: لديك ${OFF_TOPIC_THRESHOLD - trackingResult.count} محاولات متبقية قبل إغلاق الدردشة.` : ''}`,
+    }, { status: 400 });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
