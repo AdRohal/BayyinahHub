@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useParams } from "next/navigation";
 import { islamicConceptsData, IslamicConcept } from "@/data/islamicConcepts";
 import { apiUrl } from "@/lib/api";
+import ChatInterface from "@/components/ChatInterface";
 
 interface HadithResult {
   hadithNumber: string;
@@ -339,6 +340,7 @@ export default function CollectionPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [selectedHadith, setSelectedHadith] = useState<HadithResult | null>(null);
   const [selectedConcept, setSelectedConcept] = useState<IslamicConcept | null>(null);
+  const [showChat, setShowChat] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20; // Increased from 6 to 20 to show more at once
 
@@ -351,67 +353,48 @@ export default function CollectionPage() {
           // Load Islamic concepts
           setAllConcepts(islamicConceptsData);
           setFilteredConcepts(islamicConceptsData);
-          console.log(`✅ Loaded ${islamicConceptsData.length} Islamic concepts`);
         } else {
           // Fetch hadiths for this collection directly from API with very high limit
-          console.log(`🔄 Loading collection: ${collection}`);
           let allHadiths: HadithResult[] = [];
         
           // First try: fetch by collection slug directly with maxed out limit
           try {
             const url = apiUrl(`/api/search?collection=${encodeURIComponent(collection)}&limit=2000`);
-            console.log(`📡 Fetching from: ${url}`);
             const res = await fetch(url);
             const data = await res.json();
-            console.log(`📦 Raw API response:`, data);
-            console.log(`✅ Response: ${data.results?.length || 0} hadiths`);
             
             if (data.results && Array.isArray(data.results)) {
-              console.log(`📝 First hadith:`, data.results[0]);
               allHadiths.push(...data.results);
-              console.log(`📊 Loaded ${allHadiths.length} hadiths so far`);
-            } else {
-              console.error(`❌ Unexpected results format:`, typeof data.results);
             }
           } catch (err) {
-            console.error(`Failed to fetch collection ${collection}:`, err);
+            // Silently handle error
           }
 
           // Second try: if not enough, search by keywords with high limit
           if (allHadiths.length < 100) {
-            console.log(`⚠️  Only ${allHadiths.length} results, trying with keywords...`);
             for (const keyword of keywords) {
               try {
                 const url = apiUrl(`/api/search?q=${encodeURIComponent(keyword)}&limit=500`);
-                console.log(`🔍 Searching for keyword: ${keyword}`);
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.results && data.results.length > 0) {
-                  console.log(`✅ Keyword "${keyword}" returned ${data.results.length} results`);
                   allHadiths.push(...data.results);
                 }
               } catch (err) {
-                console.error(`Failed to fetch for keyword ${keyword}:`, err);
+                // Silently handle error
               }
             }
           }
-          
-          console.log(`📊 Before dedup: ${allHadiths.length} hadiths`);
-          console.log(`First few hadiths:`, allHadiths.slice(0, 3));
           
           // Remove duplicates
           const uniqueHadiths = Array.from(
             new Map(allHadiths.map(h => [h.hadithArabic, h])).values()
           );
           
-          console.log(`✅ After dedup: ${uniqueHadiths.length} hadiths`);
-          
           setAllResults(uniqueHadiths);
           setFilteredResults(uniqueHadiths);
-          console.log(`🎯 Updated state with ${uniqueHadiths.length} hadiths`);
         }
       } catch (err) {
-        console.error("Error loading collection:", err);
         setAllResults([]);
         setFilteredResults([]);
       } finally {
@@ -733,6 +716,7 @@ export default function CollectionPage() {
                 setSelectedConcept(null);
                 setAiExplanation(null);
                 setAiLoading(false);
+                setShowChat(false);
               }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-40"
             >
@@ -752,6 +736,7 @@ export default function CollectionPage() {
                       setSelectedConcept(null);
                       setAiExplanation(null);
                       setAiLoading(false);
+                      setShowChat(false);
                     }}
                     className="text-text/50 hover:text-text text-3xl hover:bg-gold/10 p-2 rounded-lg transition-all"
                   >
@@ -881,12 +866,29 @@ export default function CollectionPage() {
                           </div>
                         )}
 
-                        {/* Disclaimer */}
-                        <div className="mt-6 pt-4 border-t border-gold/10">
+                        {/* Disclaimer and Chat Button */}
+                        <div className="mt-6 pt-4 border-t border-gold/10 flex items-center justify-between">
+                          <button
+                            onClick={() => setShowChat(!showChat)}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-cream-light/80 hover:text-cream-light font-semibold rounded-lg transition-colors hover:bg-gold/10"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            {showChat ? "أغلق الدردشة" : "دردشة عن الحديث"}
+                          </button>
                           <p className="text-cream-light/30 text-xs">
                             هذا الشرح مُولّد بالذكاء الاصطناعي لتبسيط الفهم فقط.
                           </p>
                         </div>
+
+                        {/* Chat Interface */}
+                        {showChat && selectedHadith && (
+                          <ChatInterface
+                            hadithText={selectedHadith.hadithArabic}
+                            onClose={() => setShowChat(false)}
+                          />
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>

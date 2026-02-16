@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiUrl } from "@/lib/api";
 import { islamicConceptsData, IslamicConcept } from "@/data/islamicConcepts";
+import ChatInterface from "@/components/ChatInterface";
 
 interface HadithResult {
   hadithNumber: string;
@@ -50,6 +51,7 @@ export default function SearchPage() {
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedHadith, setSelectedHadith] = useState<HadithResult | null>(null);
+  const [showChat, setShowChat] = useState(false);
   const itemsPerPage = 12; // 12 results per page for 4-column grid
 
   // Load popular hadith suggestions on user focus
@@ -69,7 +71,7 @@ export default function SearchPage() {
             allSuggestions.push(...data.results);
           }
         } catch (err) {
-          console.error(`Failed to fetch topic ${topic}:`, err);
+          // Silently handle error
         }
         if (allSuggestions.length >= 6) break;
       }
@@ -80,7 +82,6 @@ export default function SearchPage() {
       
       setSuggestions(uniqueSuggestions.slice(0, 6));
     } catch (err) {
-      console.error("Error loading suggestions:", err);
       setSuggestions([]);
     } finally {
       setSuggestionsLoading(false);
@@ -105,14 +106,10 @@ export default function SearchPage() {
       const url = isCollectionSearch 
         ? apiUrl(`/api/search?collection=${encodeURIComponent(finalQuery.trim())}&limit=500`)
         : apiUrl(`/api/search?q=${encodeURIComponent(finalQuery.trim())}&limit=500`);
-      
-      console.log(`🔍 Searching: ${url}`);
       const res = await fetch(url);
       const data = await res.json();
-      console.log(`✅ Found ${data.results?.length || 0} results`);
       setResults(data.results || []);
     } catch (err) {
-      console.error("Error during search:", err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -139,10 +136,8 @@ export default function SearchPage() {
     try {
       const res = await fetch(apiUrl(`/api/search?q=${encodeURIComponent(concept.arabicWord)}&limit=500`));
       const data = await res.json();
-      console.log(`✅ Found ${data.results?.length || 0} hadiths for ${concept.arabicWord}`);
       setResults(data.results || []);
     } catch (err) {
-      console.error("Error searching for concept:", err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -580,6 +575,7 @@ export default function SearchPage() {
                 setSelectedHadith(null);
                 setAiExplanation(null);
                 setAiLoading(false);
+                setShowChat(false);
               }}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-40"
             >
@@ -598,6 +594,7 @@ export default function SearchPage() {
                       setSelectedHadith(null);
                       setAiExplanation(null);
                       setAiLoading(false);
+                      setShowChat(false);
                     }}
                     className="text-text/50 hover:text-text text-3xl hover:bg-gold/10 p-2 rounded-lg transition-all"
                   >
@@ -701,7 +698,16 @@ export default function SearchPage() {
                           </>
                         )}
 
-                        <div className="mt-6 pt-4 border-t border-gold/10">
+                        <div className="mt-6 pt-4 border-t border-gold/10 flex items-center justify-between">
+                          <button
+                            onClick={() => setShowChat(!showChat)}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-cream-light/80 hover:text-cream-light font-semibold rounded-lg transition-colors hover:bg-gold/10"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            {showChat ? "أغلق الدردشة" : "دردشة عن الحديث"}
+                          </button>
                           <p className="text-cream-light/30 text-xs flex items-center gap-1">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
@@ -709,6 +715,14 @@ export default function SearchPage() {
                             هذا الشرح مُولّد بالذكاء الاصطناعي لتبسيط الفهم فقط، ولا يُعد فتوى أو مرجعًا شرعيًا.
                           </p>
                         </div>
+
+                        {/* Chat Interface */}
+                        {showChat && (
+                          <ChatInterface
+                            hadithText={selectedHadith.hadithArabic}
+                            onClose={() => setShowChat(false)}
+                          />
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>

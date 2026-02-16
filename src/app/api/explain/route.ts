@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(`OpenAI API error: ${response.status}`);
       return NextResponse.json(
         { error: `خطأ من OpenAI API: ${response.status}` },
         { status: response.status }
@@ -119,7 +118,6 @@ export async function POST(request: NextRequest) {
       keywords: [],
     });
   } catch (error) {
-    console.error("Error calling OpenAI API:", error);
     return NextResponse.json(
       { error: "خطأ في جلب الشرح من API" },
       { status: 500 }

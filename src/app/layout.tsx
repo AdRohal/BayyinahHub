@@ -27,6 +27,37 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // Suppress development console messages
+            const originalLog = console.log;
+            const originalWarn = console.warn;
+            const originalError = console.error;
+            
+            console.log = function(...args) {
+              const msg = args[0]?.toString() || '';
+              if (!msg.includes('[HMR]') && !msg.includes('[Vercel') && !msg.includes('[pageview]') && !msg.includes('[Fast Refresh]')) {
+                originalLog.apply(console, args);
+              }
+            };
+            
+            console.warn = function(...args) {
+              const msg = args[0]?.toString() || '';
+              if (!msg.includes('[HMR]') && !msg.includes('[Vercel') && !msg.includes('debug') && !msg.includes('[Fast Refresh]')) {
+                originalWarn.apply(console, args);
+              }
+            };
+            
+            console.error = function(...args) {
+              const msg = args[0]?.toString() || '';
+              if (!msg.includes('development') && !msg.includes('[Fast Refresh]')) {
+                originalError.apply(console, args);
+              }
+            };
+          `
+        }} />
+      </head>
       <body suppressHydrationWarning className={`${notoSansArabic.variable} antialiased`}>
         <Navbar />
         <main>{children}</main>
