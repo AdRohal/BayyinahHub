@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { sanitizeString, validateNonEmptyString } from "@/lib/security";
 
 // ─── In-memory cache for fetched collections ───
 // Avoids re-fetching multi-MB JSON files from CDN on every request.
@@ -84,159 +85,168 @@ const collectionMap: Record<string, string> = {
 };
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const query = searchParams.get("q");
-  const limit = parseInt(searchParams.get("limit") || "1000");
-  const collectionParam = searchParams.get("collection");
-
-  if (!query && !collectionParam) {
-    return NextResponse.json({ results: [] });
-  }
-
-  let allResults: any[] = [];
-
   try {
-    let bookName = "";
-    let isTopicSearch = false;
-    
-    // Determine which collection to fetch
-    if (collectionParam) {
-      bookName = collectionMap[collectionParam.toLowerCase()] || collectionParam;
-    } else if (query) {
-      // Try to match query to a collection
-      const normalized = query.toLowerCase();
-      for (const [key, value] of Object.entries(collectionMap)) {
-        if (normalized.includes(key.replace(/_/g, " ")) || normalized.includes(key)) {
-          bookName = value;
-          break;
-        }
-      }
+    const searchParams = request.nextUrl.searchParams;
+    const query = searchParams.get("q");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "1000"), 5000); // Cap limit at 5000
+    const collectionParam = searchParams.get("collection");
+
+    // Validate and sanitize inputs
+    const sanitizedQuery = query ? sanitizeString(query, 500) : null;
+    const sanitizedCollection = collectionParam ? sanitizeString(collectionParam, 100) : null;
+
+    if (!sanitizedQuery && !sanitizedCollection) {
+      return NextResponse.json({ results: [] });
+    }
+
+    let allResults: any[] = [];
+
+    try {
+      let bookName = "";
+      let isTopicSearch = false;
       
-      if (!bookName) {
-        // Treat as topic/text search - fetch multiple collections
-        isTopicSearch = true;
-      }
-    }
-
-    if (isTopicSearch) {
-      // Topic search - fetch from multiple collections in parallel
-      const collectionsToSearch = [
-        "ara-bukhari",
-        "ara-muslim",
-        "ara-malik",
-        "ara-tirmidhi",
-        "ara-abudawud",
-        "ara-nasai",
-        "ara-ibnmajah",
-      ];
-
-      const searchTerm = stripDiacritics(query!);
-
-      const results = await Promise.allSettled(
-        collectionsToSearch.map(async (collection) => {
-          try {
-            const data = await fetchCollection(collection);
-            if (!data?.hadiths || !Array.isArray(data.hadiths)) return [];
-
-            return data.hadiths
-              .filter((h: any) => {
-                const text = stripDiacritics(h.text || "");
-                const book = stripDiacritics(h.book?.name || "");
-                const chapter = stripDiacritics(h.chapter?.name || h.chapter || "");
-                return text.includes(searchTerm) ||
-                       book.includes(searchTerm) ||
-                       chapter.includes(searchTerm);
-              })
-              .map((h: any) => ({
-                hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
-                collection: data.collection_name || h.collection || collection,
-                bookName: h.book?.name || h.bookName || "",
-                chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
-                hadithArabic: h.text || "",
-                hadithEnglish: h.text || "",
-                grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
-                narrator: h.narrator || h.reporter || "",
-                source: "fawazahmed0"
-              }));
-          } catch (e) {
-            return [];
+      // Determine which collection to fetch
+      if (sanitizedCollection) {
+        bookName = collectionMap[sanitizedCollection.toLowerCase()] || sanitizedCollection;
+      } else if (sanitizedQuery) {
+        // Try to match query to a collection
+        const normalized = sanitizedQuery.toLowerCase();
+        for (const [key, value] of Object.entries(collectionMap)) {
+          if (normalized.includes(key.replace(/_/g, " ")) || normalized.includes(key)) {
+            bookName = value;
+            break;
           }
-        })
-      );
-
-      for (const result of results) {
-        if (result.status === "fulfilled") {
-          allResults.push(...result.value);
+        }
+        
+        if (!bookName) {
+          // Treat as topic/text search - fetch multiple collections
+          isTopicSearch = true;
         }
       }
-    } else {
-      // Collection-specific search
-      if (!bookName) {
-        return NextResponse.json({ results: [] });
-      }
 
-      const data = await fetchCollection(bookName);
+      if (isTopicSearch) {
+        // Topic search - fetch from multiple collections in parallel
+        const collectionsToSearch = [
+          "ara-bukhari",
+          "ara-muslim",
+          "ara-malik",
+          "ara-tirmidhi",
+          "ara-abudawud",
+          "ara-nasai",
+          "ara-ibnmajah",
+        ];
 
-      if (!data) {
-        return NextResponse.json({
-          results: [],
-          error: `Failed to fetch from API`
-        });
-      }
+        const searchTerm = stripDiacritics(sanitizedQuery!);
 
-      if (data.hadiths && Array.isArray(data.hadiths)) {
+        const results = await Promise.allSettled(
+          collectionsToSearch.map(async (collection) => {
+            try {
+              const data = await fetchCollection(collection);
+              if (!data?.hadiths || !Array.isArray(data.hadiths)) return [];
 
+              return data.hadiths
+                .filter((h: any) => {
+                  const text = stripDiacritics(h.text || "");
+                  const book = stripDiacritics(h.book?.name || "");
+                  const chapter = stripDiacritics(h.chapter?.name || h.chapter || "");
+                  return text.includes(searchTerm) ||
+                         book.includes(searchTerm) ||
+                         chapter.includes(searchTerm);
+                })
+                .map((h: any) => ({
+                  hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
+                  collection: data.collection_name || h.collection || collection,
+                  bookName: h.book?.name || h.bookName || "",
+                  chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
+                  hadithArabic: h.text || "",
+                  hadithEnglish: h.text || "",
+                  grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
+                  narrator: h.narrator || h.reporter || "",
+                  source: "fawazahmed0"
+                }));
+            } catch (e) {
+              return [];
+            }
+          })
+        );
 
-        allResults = data.hadiths.map((h: any) => ({
-          hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
-          collection: data.collection_name || h.collection || bookName,
-          bookName: h.book?.name || h.bookName || "",
-          chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
-          hadithArabic: h.text || h.english || h.translation || "",
-          hadithEnglish: h.text || h.english || h.translation || "",
-          grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
-          narrator: h.narrator || h.reporter || "",
-          source: "fawazahmed0"
-        })).filter((h: any) => h.hadithArabic && h.hadithArabic.trim().length > 10);
+        for (const result of results) {
+          if (result.status === "fulfilled") {
+            allResults.push(...result.value);
+          }
+        }
       } else {
-        return NextResponse.json({
-          results: [],
-          error: "Unexpected API response format"
-        });
+        // Collection-specific search
+        if (!bookName) {
+          return NextResponse.json({ results: [] });
+        }
+
+        const data = await fetchCollection(bookName);
+
+        if (!data) {
+          return NextResponse.json({
+            results: [],
+            error: `Failed to fetch from API`
+          });
+        }
+
+        if (data.hadiths && Array.isArray(data.hadiths)) {
+          allResults = data.hadiths.map((h: any) => ({
+            hadithNumber: h.hadithnumber?.toString() || h.number?.toString() || "",
+            collection: data.collection_name || h.collection || bookName,
+            bookName: h.book?.name || h.bookName || "",
+            chapterName: h.chapter?.name || h.chapterName || h.chapter || "",
+            hadithArabic: h.text || h.english || h.translation || "",
+            hadithEnglish: h.text || h.english || h.translation || "",
+            grade: (typeof h.grade === "object" ? h.grade?.grade : h.grade) || (typeof h.grades?.[0] === "object" ? h.grades?.[0]?.grade : h.grades?.[0]) || "",
+            narrator: h.narrator || h.reporter || "",
+            source: "fawazahmed0"
+          })).filter((h: any) => h.hadithArabic && h.hadithArabic.trim().length > 10);
+        } else {
+          return NextResponse.json({
+            results: [],
+            error: "Unexpected API response format"
+          });
+        }
       }
+
+    } catch (error) {
+      console.error('Search error:', error);
+      return NextResponse.json({ 
+        results: [],
+        error: "Failed to fetch hadiths"
+      });
     }
 
-  } catch (error) {
-    return NextResponse.json({ 
-      results: [],
-      error: "Failed to fetch hadiths",
-      details: error instanceof Error ? error.message : "Unknown error"
+    // Remove duplicates
+    const uniqueResults = Array.from(
+      new Map(allResults.map(h => [h.hadithArabic.trim(), h])).values()
+    );
+
+    // Sort by hadith number
+    uniqueResults.sort((a, b) => {
+      const numA = parseInt(a.hadithNumber) || 0;
+      const numB = parseInt(b.hadithNumber) || 0;
+      return numA - numB;
     });
+
+    const returning = Math.min(uniqueResults.length, limit);
+
+    return NextResponse.json({ 
+      results: uniqueResults.slice(0, limit),
+      total: uniqueResults.length,
+      source: "fawazahmed0-hadith-api"
+    }, {
+      headers: {
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+      },
+    });
+  } catch (error) {
+    console.error('API error:', error);
+    return NextResponse.json(
+      { results: [], error: "An error occurred" },
+      { status: 500 }
+    );
   }
-
-  // Remove duplicates
-  const uniqueResults = Array.from(
-    new Map(allResults.map(h => [h.hadithArabic.trim(), h])).values()
-  );
-
-  // Sort by hadith number
-  uniqueResults.sort((a, b) => {
-    const numA = parseInt(a.hadithNumber) || 0;
-    const numB = parseInt(b.hadithNumber) || 0;
-    return numA - numB;
-  });
-
-  const returning = Math.min(uniqueResults.length, limit);
-
-
-  return NextResponse.json({ 
-    results: uniqueResults.slice(0, limit),
-    total: uniqueResults.length,
-    source: "fawazahmed0-hadith-api"
-  }, {
-    headers: {
-      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-    },
-  });
 }
 

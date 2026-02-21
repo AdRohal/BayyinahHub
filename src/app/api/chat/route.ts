@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { 
+  sanitizeString, 
+  validateNonEmptyString, 
+  getClientIp,
+  createSafeErrorResponse,
+  checkRateLimit,
+  sanitizeErrorMessage
+} from "@/lib/security";
 
 // Lightweight in-memory rate limiter (per IP, reset every 24h)
 const CHAT_RATE_LIMIT = parseInt(process.env.CHAT_RATE_LIMIT || "50", 10);
@@ -11,16 +19,7 @@ const OFF_TOPIC_THRESHOLD = 3; // Close chat after 3 off-topic messages
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 function checkAndIncrementRate(ip: string) {
-  const now = Date.now();
-  const entry = chatRateMap.get(ip) || { count: 0, ts: now };
-  if (now - entry.ts > CHAT_WINDOW_MS) {
-    entry.count = 0;
-    entry.ts = now;
-  }
-  if (entry.count >= CHAT_RATE_LIMIT) return false;
-  entry.count += 1;
-  chatRateMap.set(ip, entry);
-  return true;
+  return checkRateLimit(chatRateMap, ip, CHAT_RATE_LIMIT, CHAT_WINDOW_MS);
 }
 
 function trackOffTopic(sessionId: string): { shouldClose: boolean; count: number } {
@@ -119,59 +118,86 @@ function isQuestionRelevant(question: string, hadithText: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { hadithText, userQuestion, conversationHistory, sessionId } = body;
+  try {
+    // Validate request content type
+    const contentType = request.headers.get('content-type');
+    if (!contentType?.includes('application/json')) {
+      return NextResponse.json(
+        { error: "Content-Type يجب أن يكون application/json" },
+        { status: 400 }
+      );
+    }
 
-  if (!hadithText || !userQuestion) {
-    return NextResponse.json(
-      { error: "يجب توفير نص الحديث والسؤال" },
-      { status: 400 }
-    );
-  }
+    const body = await request.json();
+    const { hadithText, userQuestion, conversationHistory, sessionId } = body;
 
-  // Rate limit (per IP)
-  const ipHeader = request.headers.get("x-forwarded-for") || request.headers.get("x-real-ip") || "unknown";
-  const clientIp = ipHeader.split(",")[0].trim();
-  if (!checkAndIncrementRate(clientIp)) {
-    return NextResponse.json({ error: "تم تجاوز حد الطلبات اليومية للدردشة" }, { status: 429 });
-  }
+    // Sanitize and validate inputs
+    const sanitizedHadith = sanitizeString(hadithText, 10000);
+    const sanitizedQuestion = sanitizeString(userQuestion, 2000);
 
-  // Check if question is relevant to the hadith
-  const isRelevant = isQuestionRelevant(userQuestion, hadithText);
-  
-  if (!isRelevant) {
-    const trackingResult = trackOffTopic(sessionId || clientIp);
+    const hadithValidation = validateNonEmptyString(sanitizedHadith, "Hadith text");
+    const questionValidation = validateNonEmptyString(sanitizedQuestion, "Question");
+
+    if (!hadithValidation.valid) {
+      return NextResponse.json(
+        { error: "يجب توفير نص الحديث" },
+        { status: 400 }
+      );
+    }
+
+    if (!questionValidation.valid) {
+      return NextResponse.json(
+        { error: "يجب توفير السؤال" },
+        { status: 400 }
+      );
+    }
+
+    // Rate limit (per IP)
+    const clientIp = getClientIp(request);
+    if (!checkAndIncrementRate(clientIp)) {
+      return NextResponse.json(
+        { error: "تم تجاوز حد الطلبات اليومية للدردشة" },
+        { status: 429 }
+      );
+    }
+
+    // Check if question is relevant to the hadith
+    const isRelevant = isQuestionRelevant(questionValidation.value!, hadithValidation.value!);
     
-    if (trackingResult.shouldClose) {
+    if (!isRelevant) {
+      const trackingResult = trackOffTopic(sessionId || clientIp);
+      
+      if (trackingResult.shouldClose) {
+        return NextResponse.json({
+          success: false,
+          shouldCloseChat: true,
+          error: "تم إغلاق الدردشة بسبب تكرار الأسئلة غير ذات الصلة. يرجى احترام قواعد الحوار والاقتصار على أسئلة الحديث الشريف فقط.",
+        }, { status: 400 });
+      }
+      
       return NextResponse.json({
         success: false,
-        shouldCloseChat: true,
-        error: "تم إغلاق الدردشة بسبب تكرار الأسئلة غير ذات الصلة. يرجى احترام قواعد الحوار والاقتصار على أسئلة الحديث الشريف فقط.",
+        isOffTopic: true,
+        answer: `الرجاء طرح أسئلة ذات صلة بالحديث الشريف فقط 🤲\n\nهذا حوار مخصص لشرح ومناقشة الحديث المعروض. يرجى احترام قواعد الحوار وعدم الخروج عن الموضوع.\n\n${trackingResult.count > 1 ? `⚠️ تنبيه: لديك ${OFF_TOPIC_THRESHOLD - trackingResult.count} محاولات متبقية قبل إغلاق الدردشة.` : ''}`,
       }, { status: 400 });
     }
-    
-    return NextResponse.json({
-      success: false,
-      isOffTopic: true,
-      answer: `الرجاء طرح أسئلة ذات صلة بالحديث الشريف فقط 🤲\n\nهذا حوار مخصص لشرح ومناقشة الحديث المعروض. يرجى احترام قواعد الحوار وعدم الخروج عن الموضوع.\n\n${trackingResult.count > 1 ? `⚠️ تنبيه: لديك ${OFF_TOPIC_THRESHOLD - trackingResult.count} محاولات متبقية قبل إغلاق الدردشة.` : ''}`,
-    }, { status: 400 });
-  }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "مفتاح API OpenAI غير متوفر" },
-      { status: 500 }
-    );
-  }
+    if (!apiKey) {
+      console.error('Missing OPENAI_API_KEY');
+      return NextResponse.json(
+        { error: "حدث خطأ في الخادم" },
+        { status: 500 }
+      );
+    }
 
-  try {
-    // Build conversation messages
-    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
-      {
-        role: "system",
-        content: `أنت عالم متخصص في الحديث الشريف والسنة النبوية. دورك هو الإجابة على أسئلة المستخدمين حول أحاديث محددة بطريقة علمية دقيقة.
+    try {
+      // Build conversation messages
+      const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+        {
+          role: "system",
+          content: `أنت عالم متخصص في الحديث الشريف والسنة النبوية. دورك هو الإجابة على أسئلة المستخدمين حول أحاديث محددة بطريقة علمية دقيقة.
 
 قواعد حتمية:
 - لا تفتري على الدين أو النبي ﷺ بأي افتراضات
@@ -183,58 +209,70 @@ export async function POST(request: NextRequest) {
 - كن ودودًا ولطيفًا في التعامل
 
 الحديث الذي نناقشه:
-${hadithText}`,
-      },
-    ];
+${hadithValidation.value!}`,
+        },
+      ];
 
-    // Add conversation history if provided
-    if (conversationHistory && Array.isArray(conversationHistory)) {
-      for (const msg of conversationHistory) {
-        messages.push({
-          role: msg.role,
-          content: msg.content,
-        });
+      // Add conversation history if provided (with validation)
+      if (conversationHistory && Array.isArray(conversationHistory)) {
+        for (const msg of conversationHistory.slice(0, 10)) { // Limit history to last 10 messages
+          if (msg && typeof msg === 'object' && 'role' in msg && 'content' in msg) {
+            const sanitizedContent = sanitizeString(msg.content, 5000);
+            messages.push({
+              role: msg.role,
+              content: sanitizedContent,
+            });
+          }
+        }
       }
-    }
 
-    // Add new user question
-    messages.push({
-      role: "user",
-      content: userQuestion,
-    });
+      // Add new user question
+      messages.push({
+        role: "user",
+        content: questionValidation.value!,
+      });
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages,
-        temperature: 0.3,
-        max_tokens: 800,
-      }),
-    });
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages,
+          temperature: 0.3,
+          max_tokens: 800,
+        }),
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        const errorMsg = sanitizeErrorMessage(new Error(`OpenAI API error: ${response.status}`));
+        return NextResponse.json(
+          { error: errorMsg },
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || "";
+
+      return NextResponse.json({
+        answer: sanitizeString(content),
+        success: true,
+      });
+    } catch (error) {
+      const errorMsg = sanitizeErrorMessage(error);
       return NextResponse.json(
-        { error: `خطأ من OpenAI API: ${response.status}` },
-        { status: response.status }
+        { error: errorMsg },
+        { status: 500 }
       );
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-
-    return NextResponse.json({
-      answer: content,
-      success: true,
-    });
   } catch (error) {
+    console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: "خطأ في جلب الإجابة من API" },
-      { status: 500 }
+      { error: "حدث خطأ في معالجة الطلب" },
+      { status: 400 }
     );
   }
 }
