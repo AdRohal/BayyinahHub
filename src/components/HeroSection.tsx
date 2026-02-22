@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-cream-light to-cream islamic-pattern">
+    <section className="relative overflow-hidden bg-cream-pattern bg-gradient-to-b from-cream-light to-cream">
       {/* Decorative elements */}
       <div className="absolute top-10 left-10 w-72 h-72 bg-gold/5 rounded-full blur-3xl" />
       <div className="absolute bottom-10 right-10 w-64 h-64 bg-gold/5 rounded-full blur-3xl" />

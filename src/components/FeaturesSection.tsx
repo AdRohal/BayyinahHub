@@ -47,7 +47,7 @@ const item = {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-24 bg-cream relative">
+    <section id="features" className="py-24 bg-cream-pattern relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <motion.div

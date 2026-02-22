@@ -30,7 +30,7 @@ const sources = [
 
 export default function SourcesSection() {
   return (
-    <section className="py-24 bg-cream relative overflow-hidden">
+    <section className="py-24 bg-cream-pattern relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* AI-powered banner */}
         <motion.div

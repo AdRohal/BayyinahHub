@@ -8,8 +8,8 @@ import Logo from "./Logo";
 
 const navLinks = [
   { label: "الرئيسية", href: "/" },
-  { label: "الأنشطة", href: "#features" },
-  { label: "عن المركز", href: "#about" },
+  { label: "الأنشطة", href: "/features" },
+  { label: "عن مركز البيّنة", href: "/about" },
 ];
 
 const hadithCollections = [

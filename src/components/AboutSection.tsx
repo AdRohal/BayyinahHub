@@ -44,7 +44,7 @@ const features = [
 
 export default function AboutSection() {
   return (
-    <section id="about" className="py-24 bg-gradient-to-b from-cream to-white relative overflow-hidden">
+    <section id="about" className="py-24 bg-cream-pattern relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
