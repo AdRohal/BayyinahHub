@@ -58,9 +58,9 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body suppressHydrationWarning className={`${notoSansArabic.variable} antialiased`}>
+      <body suppressHydrationWarning className={`${notoSansArabic.variable} antialiased flex flex-col min-h-screen`}>
         <Navbar />
-        <main>{children}</main>
+        <main className="flex-grow">{children}</main>
         <Footer />
         <Analytics />
       </body>

@@ -4,8 +4,8 @@ import Logo from "./Logo";
 const footerLinks = {
   "مركز البيّنة": [
     { label: "الرئيسية", href: "/" },
-    { label: "عن المركز", href: "#about" },
-    { label: "اتصل بنا", href: "#contact" },
+    { label: "عن المركز", href: "/about" },
+    { label: "اتصل بنا", href: "/contact" },
   ],
   "الأنشطة": [
     { label: "الأحاديث الصحيحة", href: "/search" },
@@ -13,9 +13,7 @@ const footerLinks = {
     { label: "البحث المتقدم", href: "/search" },
   ],
   "كوّن المعرفة": [
-    { label: "الرئيسية", href: "/" },
-    { label: "المصادر المعتمدة", href: "#sources" },
-    { label: "اتصل بنا", href: "#contact" },
+    { label: "المصادر المعتمدة", href: "/sources" },
   ],
 };
 
