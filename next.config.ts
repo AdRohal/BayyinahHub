@@ -24,8 +24,8 @@ const nextConfig: NextConfig = {
         headers: [
           // Prevents MIME type sniffing
           { key: "X-Content-Type-Options", value: "nosniff" },
-          // Prevents clickjacking
-          { key: "X-Frame-Options", value: "DENY" },
+          // Allows embedding in iframes on external websites
+          { key: "X-Frame-Options", value: "ALLOWALL" },
           // Enables browser XSS filters
           { key: "X-XSS-Protection", value: "1; mode=block" },
           // Controls referrer information
@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: https:; " +
               "font-src 'self' data:; " +
               "connect-src 'self' https://api.openai.com https://cdn.jsdelivr.net https://api.vercel.com https://va.vercel-scripts.com; " +
-              "frame-ancestors 'none'; " +
+              "frame-ancestors '*'; " +
               "base-uri 'self'; " +
               "form-action 'self';",
           },
